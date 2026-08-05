@@ -23,16 +23,30 @@ A minimalist, highly functional, clinical-grade web application designed for tra
 4. **Selective Analytics & Linear Projection Engine**
    - **Data Source Selector**: Filter dashboard, charts, moving averages, and projections by specific scale ("All Sources", "Home Scale Only", "Gym Scale Only").
    - **Moving Averages**: 7-day and 14-day moving averages with daily multi-reading aggregation.
-   - **Ordinary Least Squares (OLS) Linear Projections**: Extrapolate weight loss trend line over 7, 14, 30 days, or total journey duration. Calculate projected target weight completion date.
-   - **Lean Mass Protection Warning**: Automatically flags unhealthily high muscle-to-fat loss ratios (>25% muscle loss ratio).
+   - **Ordinary Least Squares (OLS) Linear Projections**: Extrapolate weight loss trend line over 7, 14, 30 days, or total journey duration.
+   - **Lean Mass Protection Warning**: Automatically flags unhealthily high muscle-to-fat loss ratios (>25% muscle loss ratio) with actionable nutritional/training recommendations.
 
-5. **Injections, Inventory & Side Effects Tracking**
+5. **Weight Forecast & Prognosis Engine**
+   - **Multi-Horizon Weight Forecast**: Displays real-time weight predictions for 7 days, 14 days, 30 days, and 90 days out based on trend regression.
+   - **Target Goal Weight Completion**: Set custom target weight in settings and view projected completion date with remaining days countdown.
+   - **Configurable Projection Window**: Toggle baseline regression calculations over 7, 14, 30 days or total historical timeline.
+
+6. **Body Transformation & Progress Photos**
+   - **Multi-Angle Photo Logging**: Upload and tag progress photos with camera angles (Front, Side, Back, Three-Quarter, Flexed), date, weight, and notes.
+   - **1-Click Auto Weight Sync**: Automatically fetches scale weight measurement matching the photo date.
+   - **Interactive Gallery & Lightbox**: Filter photos by camera angle and view full-resolution lightboxes.
+   - **Interactive Before/After Comparison**:
+     - **Side-by-Side View**: Compare early vs recent photos with date delta, duration elapsed, and weight difference (kg).
+     - **Interactive Split-Slider**: Real-time curtain slider overlay for precision visual comparison of body composition changes.
+     - **Swap & Angle Selector**: Quickly flip before/after positions or compare matching body angles.
+
+7. **Injections, Inventory & Side Effects Tracking**
    - **Injection Log & Site Rotation Guide**: Interactive visual body map guide (Abdomen L/R, Thigh L/R, Arm L/R) to prevent lipohypertrophy. Includes injection interval alert for doses < 5 days or > 9 days apart.
    - **Purchase & Prescription Inventory Tracker**: Tracks pharmacy sources, pack sizes, total cost ($/€), daily & monthly expenditure, remaining fridge inventory count, and projected refill run-out dates.
    - **Side Effect Diary**: Severity 1–5 logging, symptom frequency analysis, and weekday distribution breakdown correlated with medication dose step-ups.
 
-6. **Full JSON & CSV Export / Import**
-   - Complete JSON database backup export and restore.
+8. **Full JSON & CSV Export / Import**
+   - Complete JSON database backup export and restore (includes scales, metrics, measurements, medications, injections, purchases, side effects, user settings, and progress photo metadata).
    - Raw metrics CSV export and spreadsheet import.
 
 ---
@@ -47,11 +61,11 @@ glp1-tracker/
 ├── .env.example             # Configuration defaults template
 ├── requirements.txt         # Python FastAPI server dependencies
 └── app/
-    ├── main.py              # FastAPI app & cookie authentication
+    ├── main.py              # FastAPI app, static mounting & cookie auth
     ├── config.py            # Environment configuration reader
     ├── database.py          # SQLite schema, tables & metrics seeder
     ├── auth.py              # Session token verification
-    ├── math_engine.py       # OLS linear regression & moving average engine
+    ├── math_engine.py       # OLS linear regression, moving average & forecast engine
     ├── export_import.py     # JSON / CSV export and import processors
     ├── routers/             # REST API routers
     │   ├── api_scales.py
@@ -61,10 +75,11 @@ glp1-tracker/
     │   ├── api_purchases.py
     │   ├── api_side_effects.py
     │   ├── api_analytics.py
-    │   └── api_export.py
+    │   ├── api_export.py
+    │   └── api_photos.py    # Progress photos & upload endpoint router
     ├── static/
     │   ├── css/main.css     # Medical laboratory dark-mode design system
-    │   └── js/app.js        # Dynamic UI, Chart.js & SVG body map controller
+    │   └── js/app.js        # Dynamic UI, Chart.js, body map & photo compare controller
     └── templates/
         └── index.html       # Responsive web application interface
 ```
