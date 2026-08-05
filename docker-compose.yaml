@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  glp1-tracker:
+    build:
+      context: .
+      dockerfile: Containerfile
+    container_name: glp1-tracker
+    restart: unless-stopped
+    ports:
+      - "${PORT:-9374}:9374"
+    env_file:
+      - .env
+    volumes:
+      - glp1_data:/app/data
+    security_opt:
+      - label=disable
+
+volumes:
+  glp1_data:
+    driver: local

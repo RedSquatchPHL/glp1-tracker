@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLP-1 Tracker | Clinical Journey Analytics</title>
+  <meta name="description" content="Minimalist, highly functional web application for tracking weight loss journeys using GLP-1 medications and body composition scales.">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-badge">GLP-1 CORE v1.0</span>
+      <h1>GLP-1 Journey & Body Composition Tracker</h1>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button class="btn btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
+        <span id="themeToggleIcon">☀️</span> <span id="themeToggleLabel">Light Mode</span>
+      </button>
+      <span id="authStatusBadge" style="font-size: 11px; color: var(--text-dim);" class="num">Port: {{ port }}</span>
+      <button class="btn btn-sm" id="authBtn" onclick="toggleAuthModal()">Login</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="tab-dashboard" onclick="switchTab('tab-dashboard')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z"/></svg>
+      Dashboard & Analytics
+    </button>
+    <button class="tab-btn" data-tab="tab-measurements" onclick="switchTab('tab-measurements')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+      Log Measurement
+    </button>
+    <button class="tab-btn" data-tab="tab-injections" onclick="switchTab('tab-injections')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19.5 4.5l-15 15M14 3l7 7M9.5 7.5L5 12M16.5 14.5L12 19"/></svg>
+      Injections & Meds
+    </button>
+    <button class="tab-btn" data-tab="tab-purchases" onclick="switchTab('tab-purchases')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+      Purchases & Inventory
+    </button>
+    <button class="tab-btn" data-tab="tab-side-effects" onclick="switchTab('tab-side-effects')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Side Effects Diary
+    </button>
+    <button class="tab-btn" data-tab="tab-settings" onclick="switchTab('tab-settings')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Scale & Device Settings
+    </button>
+    <button class="tab-btn" data-tab="tab-export" onclick="switchTab('tab-export')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export & Import
+    </button>
+  </nav>
+
+  <!-- Container -->
+  <main class="container">
+
+    <!-- TAB 1: DASHBOARD & ANALYTICS -->
+    <section id="tab-dashboard" class="tab-content active">
+      <!-- Lean Mass Protection Warning Banner -->
+      <div id="leanMassWarningBanner" class="alert-banner danger" style="display: none;">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div>
+          <strong style="color: var(--accent-rose);">LEAN MASS PROTECTION WARNING:</strong>
+          <span id="leanMassWarningText">Unhealthily high muscle loss detected.</span>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card highlight">
+          <div class="kpi-label">Current Weight</div>
+          <div class="kpi-value" id="kpiCurrentWeight">-- kg</div>
+          <div class="kpi-sub" id="kpiTotalLost">Total Lost: -- kg</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Target Weight Goal</div>
+          <div class="kpi-value" id="kpiTargetWeight">75.0 kg</div>
+          <div class="kpi-sub" id="kpiWeightToGoal">Remaining: -- kg</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">7-Day Moving Avg Rate</div>
+          <div class="kpi-value" id="kpiRate7d">-- kg/wk</div>
+          <div class="kpi-sub" id="kpiProjectionWindowLabel">Based on selected window</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Projected Goal Date</div>
+          <div class="kpi-value" id="kpiProjectedGoalDate">--</div>
+          <div class="kpi-sub" id="kpiDaysToGoal">-- days remaining</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Fridge Supply (Inventory)</div>
+          <div class="kpi-value" id="kpiDosesInFridge">-- Doses</div>
+          <div class="kpi-sub" id="kpiRefillRunOut">Refill due: --</div>
+        </div>
+      </div>
+
+      <!-- Data Source & Projection Control Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <label for="dashScaleFilter" class="toolbar-label">Data Source Scale Filter:</label>
+          <select id="dashScaleFilter" onchange="loadDashboardData()" style="width: 220px;">
+            <option value="0">All Scale Sources (Unified)</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <label for="dashWindowDays" class="toolbar-label">Projection Window:</label>
+          <select id="dashWindowDays" onchange="loadDashboardData()" style="width: 180px;">
+            <option value="7">Last 7 Days</option>
+            <option value="14">Last 14 Days</option>
+            <option value="30" selected>Last 30 Days</option>
+            <option value="0">Total Journey Duration</option>
+          </select>
+        </div>
+        <div class="toolbar-group" style="margin-left: auto;">
+          <button class="btn btn-sm" onclick="loadDashboardData()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh Analytics
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Weight & Moving Averages Chart -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18M18 9l-5 5-4-4-3 3"/></svg>
+            Weight Trajectory, Moving Averages & Dose Overlays
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim);" class="num">
+            <span>● Raw Weight</span> | <span style="color: var(--accent-cyan);">― 7D Moving Avg</span> | <span style="color: var(--accent-blue);">― 14D Moving Avg</span> | <span style="color: var(--accent-amber);">⚡ Medication Dose Step-Up</span>
+          </div>
+        </div>
+        <div style="position: relative; height: 380px; width: 100%;">
+          <canvas id="weightChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Body Composition (Fat & Muscle) Chart -->
+      <div class="grid-2col">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Body Fat (%) vs Muscle Mass (kg)
+            </div>
+          </div>
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="bodyCompChart"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              Linear Projection Engine Summary
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="color: var(--text-muted);">Current Weight:</span>
+              <strong id="projCurrentWeight" class="num">-- kg</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="color: var(--text-muted);">Target Weight:</span>
+              <strong id="projTargetWeight" class="num">-- kg</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="color: var(--text-muted);">Weight Loss Rate (Slope):</span>
+              <strong id="projRate" class="num" style="color: var(--accent-emerald);">-- kg/week</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="color: var(--text-muted);">Estimated Completion Date:</span>
+              <strong id="projDate" class="num" style="color: var(--accent-cyan);">--</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="color: var(--text-muted);">Muscle-to-Fat Loss Ratio:</span>
+              <strong id="projMuscleRatio" class="num">--% muscle</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: LOG MEASUREMENT -->
+    <section id="tab-measurements" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            Dynamic Scale Measurement Entry Form
+          </div>
+        </div>
+
+        <form id="measurementForm" onsubmit="handleSaveMeasurement(event)">
+          <input type="hidden" id="measEditId" value="">
+          
+          <div class="form-grid" style="margin-bottom: 16px;">
+            <div class="form-group">
+              <label for="measScaleSelect">Select Scale / Device Profile:</label>
+              <select id="measScaleSelect" onchange="renderDynamicScaleForm()" required>
+                <!-- Rendered dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="measTimestamp">Measurement Date & Time:</label>
+              <input type="datetime-local" id="measTimestamp" required>
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="measNotes">Notes / Conditions (e.g. Fasted, Post-workout):</label>
+              <input type="text" id="measNotes" placeholder="Optional notes...">
+            </div>
+          </div>
+
+          <!-- Dynamic Metric Inputs Container -->
+          <div style="background-color: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--accent-cyan); font-weight: 600; margin-bottom: 12px;" id="scaleFormTitle">
+              Assigned Metrics for Selected Scale
+            </div>
+            <div id="dynamicFieldsGrid" class="form-grid">
+              <!-- Dynamically populated based on selected scale profile -->
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <button type="submit" class="btn btn-primary">Save Measurement Entry</button>
+            <button type="button" class="btn" onclick="resetMeasurementForm()">Reset Form</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Measurement History Log Table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Historical Measurement Logs
+          </div>
+          <button class="btn btn-sm" onclick="loadMeasurementsTable()">Reload Logs</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Scale Device</th>
+                <th>Weight (kg)</th>
+                <th>Body Fat (%)</th>
+                <th>Muscle (kg)</th>
+                <th>BMI</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="measurementsTableBody">
+              <!-- Dynamically rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: INJECTIONS & MEDICATION MANAGEMENT -->
+    <section id="tab-injections" class="tab-content">
+      <div class="grid-2col">
+        <!-- Injection Logging Form -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19.5 4.5l-15 15M14 3l7 7M9.5 7.5L5 12M16.5 14.5L12 19"/></svg>
+              Log Injection Dose
+            </div>
+          </div>
+
+          <form id="injectionForm" onsubmit="handleSaveInjection(event)">
+            <input type="hidden" id="injEditId" value="">
+            <div class="form-group">
+              <label for="injMedicationSelect">Medication Profile:</label>
+              <select id="injMedicationSelect" onchange="updateDoseStepOptions()" required>
+                <!-- Rendered -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="injDosageMg">Dosage (mg):</label>
+              <select id="injDosageMg" required>
+                <!-- Rendered from medication dosage steps -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="injTimestamp">Date & Time:</label>
+              <input type="datetime-local" id="injTimestamp" required>
+            </div>
+            <div class="form-group">
+              <label for="injSite">Injection Body Site:</label>
+              <select id="injSite" required onchange="highlightSelectedSite(this.value)">
+                <option value="abdomen_l">Abdomen (Left)</option>
+                <option value="abdomen_r">Abdomen (Right)</option>
+                <option value="thigh_l">Thigh (Left)</option>
+                <option value="thigh_r">Thigh (Right)</option>
+                <option value="arm_l">Upper Arm (Left)</option>
+                <option value="arm_r">Upper Arm (Right)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="injNotes">Notes (e.g. Needle size, side feelings):</label>
+              <input type="text" id="injNotes" placeholder="Optional injection notes...">
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <button type="submit" class="btn btn-primary">Record Injection</button>
+              <button type="button" class="btn" onclick="resetInjectionForm()">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Interactive Injection Site Rotation Map -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0-10 10"/></svg>
+              Injection Site Rotation Guide
+            </div>
+          </div>
+          <div class="site-map-container">
+            <div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                Recommended Next Site:
+              </div>
+              <div id="recommendedNextSiteBadge" class="site-badge" style="font-size: 14px; padding: 6px 12px; margin-bottom: 12px;">
+                Checking rotation...
+              </div>
+              <div id="siteRotationHistoryList" style="font-size: 12px; display: flex; flex-direction: column; gap: 6px;">
+                <!-- Rendered -->
+              </div>
+            </div>
+            <div>
+              <!-- Body Map Visual SVG -->
+              <svg class="body-diagram-svg" viewBox="0 0 200 300">
+                <!-- Head -->
+                <circle cx="100" cy="30" r="18" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+                <!-- Torso / Abdomen -->
+                <rect x="70" y="60" width="60" height="90" rx="6" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+                <!-- Abdomen Left & Right Sites -->
+                <rect id="svg_site_abdomen_l" class="body-part" x="75" y="100" width="22" height="35" rx="3" onclick="selectSiteFromSvg('abdomen_l')"/>
+                <rect id="svg_site_abdomen_r" class="body-part" x="103" y="100" width="22" height="35" rx="3" onclick="selectSiteFromSvg('abdomen_r')"/>
+                <text x="86" y="122" fill="#94a3b8" font-size="9" text-anchor="middle" pointer-events="none">Abd L</text>
+                <text x="114" y="122" fill="#94a3b8" font-size="9" text-anchor="middle" pointer-events="none">Abd R</text>
+                
+                <!-- Left Arm & Right Arm -->
+                <rect id="svg_site_arm_l" class="body-part" x="42" y="65" width="22" height="50" rx="3" onclick="selectSiteFromSvg('arm_l')"/>
+                <rect id="svg_site_arm_r" class="body-part" x="136" y="65" width="22" height="50" rx="3" onclick="selectSiteFromSvg('arm_r')"/>
+                <text x="53" y="92" fill="#94a3b8" font-size="8" text-anchor="middle" pointer-events="none">Arm L</text>
+                <text x="147" y="92" fill="#94a3b8" font-size="8" text-anchor="middle" pointer-events="none">Arm R</text>
+
+                <!-- Left Thigh & Right Thigh -->
+                <rect id="svg_site_thigh_l" class="body-part" x="72" y="160" width="25" height="70" rx="4" onclick="selectSiteFromSvg('thigh_l')"/>
+                <rect id="svg_site_thigh_r" class="body-part" x="103" y="160" width="25" height="70" rx="4" onclick="selectSiteFromSvg('thigh_r')"/>
+                <text x="84" y="198" fill="#94a3b8" font-size="9" text-anchor="middle" pointer-events="none">Thigh L</text>
+                <text x="115" y="198" fill="#94a3b8" font-size="9" text-anchor="middle" pointer-events="none">Thigh R</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Injection Logs History Table -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Injection History
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Medication</th>
+                <th>Dosage (mg)</th>
+                <th>Injection Site</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="injectionsTableBody">
+              <!-- Rendered -->
+            </tbody>
+          </table>
+      <!-- Medication Profiles Manager Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19.5 4.5l-15 15M14 3l7 7M9.5 7.5L5 12M16.5 14.5L12 19"/></svg>
+            Medication Profiles & Custom Dosage Steps
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openNewMedicationModal()">+ Add Medication Profile</button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          Create, edit, or remove GLP-1/GIP medication profiles (e.g. Wegovy, Ozempic, Mounjaro, Zepbound) and customize your active dosage steps.
+        </p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Medication Name</th>
+                <th>Active Ingredient</th>
+                <th>Dosage Steps (mg)</th>
+                <th>Form Factor</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="medicationsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PURCHASES & INVENTORY -->
+    <section id="tab-purchases" class="tab-content">
+      <!-- Financial Summary KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Investment</div>
+          <div class="kpi-value" id="kpiTotalCost">€0.00</div>
+          <div class="kpi-sub" id="kpiJourneyDays">Across -- journey days</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Daily Expenditure</div>
+          <div class="kpi-value" id="kpiDailyCost">€0.00 / day</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Monthly Expenditure</div>
+          <div class="kpi-value" id="kpiMonthlyCost">€0.00 / mo</div>
+        </div>
+        <div class="kpi-card highlight">
+          <div class="kpi-label">Doses Remaining in Fridge</div>
+          <div class="kpi-value" id="kpiDosesFridgeCount">0 Doses</div>
+          <div class="kpi-sub" id="kpiDosesTotalStat">Purchased: -- | Used: --</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            Log Medication Purchase / Prescription Refill
+          </div>
+        </div>
+
+        <form id="purchaseForm" onsubmit="handleSavePurchase(event)">
+          <input type="hidden" id="purEditId" value="">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="purMedicationSelect">Medication:</label>
+              <select id="purMedicationSelect" required></select>
+            </div>
+            <div class="form-group">
+              <label for="purDate">Purchase Date:</label>
+              <input type="date" id="purDate" required>
+            </div>
+            <div class="form-group">
+              <label for="purPackSize">Pack Size (Doses per Box):</label>
+              <input type="number" id="purPackSize" value="4" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="purDoseMg">Dose Strength per Pen (mg):</label>
+              <input type="number" step="0.05" id="purDoseMg" placeholder="e.g. 2.4" required>
+            </div>
+            <div class="form-group">
+              <label for="purPharmacy">Pharmacy / Source:</label>
+              <input type="text" id="purPharmacy" placeholder="e.g. Local Pharmacy, Express Scripts">
+            </div>
+            <div class="form-group">
+              <label for="purCost">Total Cost (€):</label>
+              <input type="number" step="0.01" id="purCost" placeholder="299.00" required>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 16px;">
+            <button type="submit" class="btn btn-primary">Save Purchase Record</button>
+            <button type="button" class="btn" onclick="resetPurchaseForm()">Clear</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Purchase History
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Medication</th>
+                <th>Pack Size</th>
+                <th>Dose Strength</th>
+                <th>Pharmacy</th>
+                <th>Total Cost</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="purchasesTableBody">
+              <!-- Rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: SIDE EFFECTS DIARY -->
+    <section id="tab-side-effects" class="tab-content">
+      <div class="grid-2col">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              Log Side Effect / Symptom Entry
+            </div>
+          </div>
+          <form id="sideEffectForm" onsubmit="handleSaveSideEffect(event)">
+            <input type="hidden" id="seEditId" value="">
+            <div class="form-group">
+              <label for="seTimestamp">Date & Time:</label>
+              <input type="datetime-local" id="seTimestamp" required>
+            </div>
+            <div class="form-group">
+              <label for="seSymptomName">Symptom Name:</label>
+              <select id="seSymptomName" required>
+                <option value="Nausea">Nausea</option>
+                <option value="Fatigue">Fatigue</option>
+                <option value="Constipation">Constipation</option>
+                <option value="Acid Reflux">Acid Reflux / Heartburn</option>
+                <option value="Headache">Headache</option>
+                <option value="Diarrhea">Diarrhea</option>
+                <option value="Injection Site Reaction">Injection Site Reaction</option>
+                <option value="Custom">Other (Specify in notes)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="seSeverity">Severity Level (1 = Mild, 5 = Severe):</label>
+              <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+                <input type="range" id="seSeverity" min="1" max="5" value="2" oninput="document.getElementById('seSeverityVal').innerText = this.value">
+                <span id="seSeverityVal" class="num" style="font-weight: 700; color: var(--accent-amber); font-size: 16px;">2</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="seNotes">Notes & Mitigation Taken:</label>
+              <input type="text" id="seNotes" placeholder="e.g. Took ginger tea, mild discomfort after dose increase">
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Log Symptom</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              Symptom Frequency & Weekday Distribution
+            </div>
+          </div>
+          <div style="position: relative; height: 240px;">
+            <canvas id="sideEffectsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Symptom Diary History
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Symptom</th>
+                <th>Severity</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sideEffectsTableBody">
+              <!-- Rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 6: SCALE & DEVICE SETTINGS -->
+    <section id="tab-settings" class="tab-content">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Scale & Device Profiles (Master Data)
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openNewScaleModal()">+ Create Scale Profile</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Scale Name</th>
+                <th>Description</th>
+                <th>Assigned Metrics</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="scalesTableBody">
+              <!-- Rendered -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Metric Definitions Manager Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+            Metric Definitions & Custom Input Fields Manager
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openNewMetricModal()">+ Create New Metric Field</button>
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          Add, edit, or deactivate measurement metric fields (e.g. Systolic/Diastolic Blood Pressure, Resting Heart Rate, Blood Glucose, Body Fat %, Muscle Mass).
+        </p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Label</th>
+                <th>Unit</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="metricsTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- User Target Weight Setting Panel -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Target Weight & Goal Settings</div>
+        </div>
+        <div class="form-group" style="max-width: 300px;">
+          <label for="targetWeightInput">Target Goal Weight (kg):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" step="0.1" id="targetWeightInput" value="75.0">
+            <button type="button" class="btn btn-primary" onclick="saveTargetWeight()">Save</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 7: EXPORT & IMPORT -->
+    <section id="tab-export" class="tab-content">
+      <div class="grid-2col">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Export Raw Data & Backups
+            </div>
+          </div>
+          <p style="color: var(--text-muted); margin-bottom: 16px;">
+            Export your entire database (all scales, metrics, raw measurement entries, medication logs, purchases, side effects, and settings) for external analysis or offline backups.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <a href="/api/export/json" class="btn btn-primary" download>
+              Download Complete JSON Database Backup
+            </a>
+            <a href="/api/export/csv" class="btn" download>
+              Download Measurements CSV Spreadsheet
+            </a>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              Restore or Import Data
+            </div>
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import JSON Backup File:</label>
+            <input type="file" id="jsonImportFile" accept=".json" style="margin-bottom: 8px;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="handleImportJson()">Restore JSON Backup</button>
+          </div>
+          <hr style="border-color: var(--border-subtle); margin: 16px 0;">
+          <div>
+            <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import CSV Measurements File:</label>
+            <input type="file" id="csvImportFile" accept=".csv" style="margin-bottom: 8px;">
+            <button type="button" class="btn btn-sm" onclick="handleImportCsv()">Import CSV Entries</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Scale Profile Edit/Create -->
+  <div id="scaleModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px;" id="scaleModalTitle">Scale Profile Settings</h3>
+      <form id="scaleModalForm" onsubmit="handleSaveScaleModal(event)">
+        <input type="hidden" id="modalScaleId" value="">
+        <div class="form-group">
+          <label for="modalScaleName">Scale Profile Name:</label>
+          <input type="text" id="modalScaleName" placeholder="e.g. Kitchen Smart Scale" required>
+        </div>
+        <div class="form-group">
+          <label for="modalScaleDesc">Description:</label>
+          <input type="text" id="modalScaleDesc" placeholder="e.g. Primary morning scale">
+        </div>
+        <div class="form-group">
+          <label>Assign Metric Input Fields:</label>
+          <div id="modalMetricsCheckboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 200px; overflow-y: auto; background-color: var(--bg-input); padding: 12px; border: 1px solid var(--border-color); border-radius: 4px;">
+            <!-- Rendered -->
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closeScaleModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Password Auth -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 380px;">
+      <h3 style="margin-bottom: 12px;">Authentication Required</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+        Enter application password configured in your .env file:
+      </p>
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label for="authPasswordInput">Password:</label>
+          <input type="password" id="authPasswordInput" style="width: 100%; padding: 8px;" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn" onclick="toggleAuthModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Authenticate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Metric Definition Create/Edit -->
+  <div id="metricModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px;" id="metricModalTitle">Create Metric Input Field</h3>
+      <form id="metricModalForm" onsubmit="handleSaveMetricModal(event)">
+        <input type="hidden" id="modalMetricOriginalKey" value="">
+        <div class="form-group">
+          <label for="modalMetricKey">Metric Key ID (e.g. bp_systolic, blood_sugar):</label>
+          <input type="text" id="modalMetricKey" placeholder="e.g. bp_systolic" required>
+        </div>
+        <div class="form-group">
+          <label for="modalMetricLabel">Display Label:</label>
+          <input type="text" id="modalMetricLabel" placeholder="e.g. Systolic Blood Pressure" required>
+        </div>
+        <div class="form-group">
+          <label for="modalMetricUnit">Unit (e.g. mmHg, kg, %, bpm, mg/dL):</label>
+          <input type="text" id="modalMetricUnit" placeholder="e.g. mmHg" required>
+        </div>
+        <div class="form-group">
+          <label for="modalMetricCategory">Category:</label>
+          <select id="modalMetricCategory">
+            <option value="body_comp">Body Composition</option>
+            <option value="vital_signs">Vital Signs & Cardiovascular (BP, HR, Glucose)</option>
+            <option value="segmental">Segmental Muscle/Fat</option>
+            <option value="custom">Custom Field</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closeMetricModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Metric Field</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Medication Profile Create/Edit -->
+  <div id="medicationModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px;" id="medicationModalTitle">Medication Profile Settings</h3>
+      <form id="medicationModalForm" onsubmit="handleSaveMedicationModal(event)">
+        <input type="hidden" id="modalMedId" value="">
+        <div class="form-group">
+          <label for="modalMedName">Medication Name (e.g. Wegovy, Ozempic, Custom):</label>
+          <input type="text" id="modalMedName" placeholder="e.g. Wegovy" required>
+        </div>
+        <div class="form-group">
+          <label for="modalMedIngredient">Active Ingredient:</label>
+          <input type="text" id="modalMedIngredient" placeholder="e.g. Semaglutide, Tirzepatide">
+        </div>
+        <div class="form-group">
+          <label for="modalMedSteps">Dosage Steps (Comma-separated numbers in mg, e.g. 0.25 or 0.25, 0.5, 1.0):</label>
+          <input type="text" id="modalMedSteps" placeholder="e.g. 0.25" required>
+          <span style="font-size: 11px; color: var(--text-dim);">If you currently only use 0.25 mg, enter: 0.25</span>
+        </div>
+        <div class="form-group">
+          <label for="modalMedForm">Form Factor:</label>
+          <select id="modalMedForm">
+            <option value="subcutaneous_pen">Subcutaneous Pen</option>
+            <option value="vial_syringe">Vial & Syringe</option>
+            <option value="oral">Oral Pill / Tablet</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="modalMedNotes">Notes:</label>
+          <input type="text" id="modalMedNotes" placeholder="e.g. Prescribed weekly dose">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closeMedicationModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Medication</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Application Logic JavaScript -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
