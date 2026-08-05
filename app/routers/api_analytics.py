@@ -69,13 +69,25 @@ def get_dashboard_data(
     injection_overlays = [dict(r) for r in cursor.fetchall()]
 
     # 6. Overall statistics
-    latest_meas = measurements[-1] if measurements else None
-    first_meas = measurements[0] if measurements else None
+    latest_meas = None
+    first_meas = None
     
-    start_weight = first_meas["data"].get("weight_kg") if first_meas else None
-    current_weight = latest_meas["data"].get("weight_kg") if latest_meas else None
-    
-    total_lost = round(current_weight - start_weight, 2) if (start_weight and current_weight) else 0.0
+    for m in reversed(measurements):
+        if m.get("data", {}).get("weight_kg") is not None:
+            latest_meas = m
+            break
+
+    for m in measurements:
+        if m.get("data", {}).get("weight_kg") is not None:
+            first_meas = m
+            break
+
+    start_weight = first_meas["data"]["weight_kg"] if first_meas else None
+    current_weight = latest_meas["data"]["weight_kg"] if latest_meas else None
+    latest_weight_date = latest_meas["timestamp"].split("T")[0] if latest_meas else None
+
+    total_lost = round(current_weight - start_weight, 2) if (start_weight is not None and current_weight is not None) else 0.0
+    weight_to_goal = round(current_weight - target_weight_kg, 2) if (current_weight is not None and target_weight_kg is not None) else 0.0
 
     return {
         "scale_filter_id": scale_id,
@@ -83,7 +95,9 @@ def get_dashboard_data(
         "target_weight_kg": target_weight_kg,
         "start_weight_kg": start_weight,
         "current_weight_kg": current_weight,
+        "latest_weight_date": latest_weight_date,
         "total_lost_kg": total_lost,
+        "weight_to_goal_kg": weight_to_goal,
         "weight_moving_averages": weight_ma,
         "fat_moving_averages": fat_ma,
         "muscle_moving_averages": muscle_ma,

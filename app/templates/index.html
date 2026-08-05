@@ -39,6 +39,10 @@
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
       Log Measurement
     </a>
+    <a class="tab-btn" href="#photos" data-tab="tab-photos" onclick="switchTab('tab-photos')">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Body Photos & Compare
+    </a>
     <a class="tab-btn" href="#injections" data-tab="tab-injections" onclick="switchTab('tab-injections')">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19.5 4.5l-15 15M14 3l7 7M9.5 7.5L5 12M16.5 14.5L12 19"/></svg>
       Injections & Meds
@@ -81,6 +85,7 @@
           <div class="kpi-label">Current Weight</div>
           <div class="kpi-value" id="kpiCurrentWeight">-- kg</div>
           <div class="kpi-sub" id="kpiTotalLost">Total Lost: -- kg</div>
+          <div class="kpi-sub" id="kpiLastWeightDate" style="color: var(--accent-blue); margin-top: 2px;">Last entry: --</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Target Weight Goal</div>
@@ -102,6 +107,21 @@
           <div class="kpi-value" id="kpiDosesInFridge">-- Doses</div>
           <div class="kpi-sub" id="kpiRefillRunOut">Refill due: --</div>
         </div>
+      </div>
+
+      <!-- Weight Forecast Prognosis Line -->
+      <div style="font-size: 12px; background: var(--bg-surface); padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <span style="color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" fill="none" stroke="var(--accent-blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+          Weight Prognosis (Forecast):
+        </span>
+        <span style="font-size: 12px;">7 Days: <strong id="prog7d" style="color: var(--accent-cyan);" class="num">-- kg</strong></span>
+        <span style="color: var(--border-color);">•</span>
+        <span style="font-size: 12px;">14 Days: <strong id="prog14d" style="color: var(--accent-blue);" class="num">-- kg</strong></span>
+        <span style="color: var(--border-color);">•</span>
+        <span style="font-size: 12px;">30 Days: <strong id="prog30d" style="color: var(--accent-purple);" class="num">-- kg</strong></span>
+        <span style="color: var(--border-color);">•</span>
+        <span style="font-size: 12px;">90 Days: <strong id="prog90d" style="color: var(--accent-emerald);" class="num">-- kg</strong></span>
       </div>
 
       <!-- Data Source & Projection Control Toolbar -->
@@ -728,6 +748,193 @@
       </div>
     </section>
 
+    <!-- TAB: BODY PHOTOS & BEFORE/AFTER COMPARISON -->
+    <section id="tab-photos" class="tab-content">
+      <!-- Section Header / Toolbar -->
+      <div class="panel" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" fill="none" stroke="var(--accent-blue)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              Progress & Body Transformation Photos
+            </h2>
+            <p style="font-size: 12px; color: var(--text-muted);">
+              Track physical body changes across dates, weight entries, and multiple camera angles (Front, Side, Back, etc.).
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <!-- View Mode Switcher -->
+            <div class="view-mode-toggle">
+              <button class="btn btn-sm active" id="btnPhotoSubtabGallery" onclick="switchPhotoSubtab('gallery')">
+                📷 Photo Gallery
+              </button>
+              <button class="btn btn-sm" id="btnPhotoSubtabCompare" onclick="switchPhotoSubtab('compare')">
+                ⚖️ Before / After Tool
+              </button>
+            </div>
+            <button class="btn btn-primary" onclick="openPhotoUploadModal()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Upload Progress Photo
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Sub-bar for Gallery view -->
+        <div id="photoGalleryFilterBar" class="toolbar" style="margin-top: 16px; margin-bottom: 0; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+          <div class="toolbar-group">
+            <span class="toolbar-label">Angle Filter:</span>
+            <div class="pill-filters" id="photoAnglePills">
+              <button class="pill-btn active" onclick="filterPhotoAngle('All')">All Angles</button>
+              <button class="pill-btn" onclick="filterPhotoAngle('Front')">Front</button>
+              <button class="pill-btn" onclick="filterPhotoAngle('Side')">Side</button>
+              <button class="pill-btn" onclick="filterPhotoAngle('Back')">Back</button>
+              <button class="pill-btn" onclick="filterPhotoAngle('Three-Quarter')">Three-Quarter</button>
+              <button class="pill-btn" onclick="filterPhotoAngle('Flexed')">Flexed</button>
+            </div>
+          </div>
+          <div class="toolbar-group" style="margin-left: auto;">
+            <span style="font-size: 12px; color: var(--text-dim);" id="photoCountLabel">0 photos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 1: PHOTO GALLERY -->
+      <div id="photosGalleryView">
+        <div id="photoGrid" class="photo-grid">
+          <!-- Dynamic Photo Cards rendered by JavaScript -->
+        </div>
+        <div id="photoGridEmpty" class="panel text-center" style="display: none; padding: 40px 20px;">
+          <svg width="48" height="48" fill="none" stroke="var(--text-dim)" stroke-width="1.5" viewBox="0 0 24 24" style="margin-bottom: 12px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <h3 style="font-size: 15px; color: var(--text-main); margin-bottom: 6px;">No progress photos recorded yet</h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            Upload multi-angle body photos tagged with date and weight to start tracking your transformation visually.
+          </p>
+          <button class="btn btn-primary btn-sm" onclick="openPhotoUploadModal()">Upload Your First Photo</button>
+        </div>
+      </div>
+
+      <!-- VIEW 2: BEFORE / AFTER COMPARISON TOOL -->
+      <div id="photosCompareView" style="display: none;">
+        <div class="panel" style="margin-bottom: 20px;">
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between;">
+            <!-- Selector Photo A (Before) -->
+            <div style="flex: 1; min-width: 240px;">
+              <label style="font-weight: 600; color: var(--accent-blue); display: block; margin-bottom: 6px; font-size: 13px;">
+                🔴 Select "BEFORE" Photo:
+              </label>
+              <select id="compareSelectA" onchange="updateBeforeAfterComparison()" class="form-control" style="width: 100%;">
+                <!-- Options populated dynamically -->
+              </select>
+            </div>
+
+            <!-- Quick Swap Button -->
+            <button class="btn btn-sm" onclick="swapBeforeAfterPhotos()" title="Swap Before & After photos" style="align-self: flex-end; margin-bottom: 2px;">
+              ⇄ Swap
+            </button>
+
+            <!-- Selector Photo B (After) -->
+            <div style="flex: 1; min-width: 240px;">
+              <label style="font-weight: 600; color: var(--accent-emerald); display: block; margin-bottom: 6px; font-size: 13px;">
+                🟢 Select "AFTER" Photo:
+              </label>
+              <select id="compareSelectB" onchange="updateBeforeAfterComparison()" class="form-control" style="width: 100%;">
+                <!-- Options populated dynamically -->
+              </select>
+            </div>
+
+            <!-- Filter Same Angle -->
+            <div style="align-self: flex-end; margin-bottom: 2px;">
+              <button class="btn btn-sm" onclick="autoSelectSameAngleCompare()" title="Auto-select matching angle comparison">
+                🎯 Auto-Match Front Angle
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transformation Analytics Summary Bar -->
+        <div id="compareSummaryBanner" class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
+          <div class="kpi-card highlight">
+            <div class="kpi-label">Weight Change</div>
+            <div class="kpi-value" id="cmpKpiWeightDiff">-- kg</div>
+            <div class="kpi-sub" id="cmpKpiWeightRange">-- ➔ --</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Time Elapsed</div>
+            <div class="kpi-value" id="cmpKpiDays">-- days</div>
+            <div class="kpi-sub" id="cmpKpiDateRange">-- to --</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Loss Rate</div>
+            <div class="kpi-value" id="cmpKpiRate">-- kg/wk</div>
+            <div class="kpi-sub">Average weekly change</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Angles Compared</div>
+            <div class="kpi-value" id="cmpKpiAngle">--</div>
+            <div class="kpi-sub" id="cmpKpiAngleSub">Camera positioning</div>
+          </div>
+        </div>
+
+        <!-- Comparison Display Mode Tabs -->
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <button class="btn btn-sm active" id="btnCmpModeSide" onclick="setCmpMode('side')">
+            🖼️ Side-by-Side View
+          </button>
+          <button class="btn btn-sm" id="btnCmpModeSlider" onclick="setCmpMode('slider')">
+            ↔️ Interactive Split Slider
+          </button>
+        </div>
+
+        <!-- Mode 1: Side-by-Side View (Default) -->
+        <div id="cmpViewSide" class="grid-2col">
+          <div class="panel" style="text-align: center;">
+            <div style="font-weight: 700; color: var(--accent-blue); margin-bottom: 8px; font-size: 15px;" id="sideBeforeHeader">
+              🔴 BEFORE: --
+            </div>
+            <div style="height: 420px; display: flex; align-items: center; justify-content: center; background: #000000; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color);">
+              <img id="sideBeforeImg" src="" style="max-height: 100%; max-width: 100%; object-fit: contain; cursor: pointer;" onclick="openLightbox(this.src, 'Before Photo')">
+            </div>
+            <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);" id="sideBeforeSub">
+              --
+            </div>
+          </div>
+
+          <div class="panel" style="text-align: center;">
+            <div style="font-weight: 700; color: var(--accent-emerald); margin-bottom: 8px; font-size: 15px;" id="sideAfterHeader">
+              🟢 AFTER: --
+            </div>
+            <div style="height: 420px; display: flex; align-items: center; justify-content: center; background: #000000; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color);">
+              <img id="sideAfterImg" src="" style="max-height: 100%; max-width: 100%; object-fit: contain; cursor: pointer;" onclick="openLightbox(this.src, 'After Photo')">
+            </div>
+            <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);" id="sideAfterSub">
+              --
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Interactive Split Slider View -->
+        <div id="cmpViewSlider" class="panel" style="padding: 16px; text-align: center; display: none;">
+          <p style="font-size: 11px; color: var(--text-dim); margin-bottom: 12px;">
+            Drag the cyan handle left/right to reveal physical transformation differences:
+          </p>
+          <div class="ba-slider-container" id="baSliderContainer">
+            <img id="baImgAfter" class="ba-img ba-img-after" src="" alt="After Photo">
+            <div class="ba-overlay" id="baOverlay">
+              <img id="baImgBefore" class="ba-img ba-img-before" src="" alt="Before Photo">
+            </div>
+            <div class="ba-handle" id="baHandle">
+              <div class="ba-handle-line"></div>
+              <div class="ba-handle-button">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="transform: rotate(180deg);"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+              </div>
+              <div class="ba-handle-line"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODAL: Scale Profile Edit/Create -->
@@ -849,6 +1056,113 @@
           <button type="submit" class="btn btn-primary">Save Medication</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Progress Photo Upload -->
+  <div id="photoUploadModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px;">
+      <h3 style="margin-bottom: 16px;">Upload Progress Photo</h3>
+      <form id="photoUploadForm" onsubmit="handleSavePhotoUpload(event)">
+        <div class="form-group">
+          <label for="photoDate">Date Tagged:</label>
+          <input type="date" id="photoDate" required onchange="autoFetchWeightForDate(this.value)">
+        </div>
+        <div class="form-group">
+          <label for="photoWeight">Weight Tagged (kg):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" step="0.1" id="photoWeight" placeholder="e.g. 84.5" style="flex: 1;">
+            <button type="button" class="btn btn-sm" onclick="fetchWeightForSelectedDate()" title="Prefill recorded scale weight on this date">
+              ⚡ Fetch Weight
+            </button>
+          </div>
+          <span style="font-size: 11px; color: var(--text-dim);" id="photoWeightHint">Click fetch to auto-fill scale measurement from that day</span>
+        </div>
+        <div class="form-group">
+          <label for="photoAngle">Camera Angle Tag:</label>
+          <select id="photoAngle" required>
+            <option value="Front">Front Angle</option>
+            <option value="Side">Side Profile</option>
+            <option value="Back">Back Angle</option>
+            <option value="Three-Quarter">Three-Quarter Angle</option>
+            <option value="Flexed">Flexed / Pose</option>
+            <option value="Other">Other / Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="photoFileInput">Image File:</label>
+          <input type="file" id="photoFileInput" accept="image/*" required onchange="previewPhotoFile(event)">
+          <div id="photoPreviewBox" style="margin-top: 10px; display: none; text-align: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+            <img id="photoPreviewImg" src="" style="max-height: 180px; max-width: 100%; border-radius: 4px;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="photoNotes">Notes (Optional):</label>
+          <input type="text" id="photoNotes" placeholder="e.g. Morning, fasted, 10 weeks into Wegovy">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closePhotoUploadModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="photoSubmitBtn">Upload Photo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Photo Metadata Edit -->
+  <div id="photoEditModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px;">Edit Photo Details</h3>
+      <form id="photoEditForm" onsubmit="handleSavePhotoEdit(event)">
+        <input type="hidden" id="editPhotoId" value="">
+        <div class="form-group">
+          <label for="editPhotoDate">Date Tagged:</label>
+          <input type="date" id="editPhotoDate" required>
+        </div>
+        <div class="form-group">
+          <label for="editPhotoWeight">Weight Tagged (kg):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" step="0.1" id="editPhotoWeight" placeholder="e.g. 84.5" style="flex: 1;">
+            <button type="button" class="btn btn-sm" onclick="fetchWeightForEditDate()" title="Prefill recorded scale weight on this date">
+              ⚡ Fetch Weight
+            </button>
+          </div>
+          <span style="font-size: 11px; color: var(--text-dim);" id="editPhotoWeightHint">Click fetch to auto-fill scale measurement from that day</span>
+        </div>
+        <div class="form-group">
+          <label for="editPhotoAngle">Camera Angle Tag:</label>
+          <select id="editPhotoAngle" required>
+            <option value="Front">Front Angle</option>
+            <option value="Side">Side Profile</option>
+            <option value="Back">Back Angle</option>
+            <option value="Three-Quarter">Three-Quarter Angle</option>
+            <option value="Flexed">Flexed / Pose</option>
+            <option value="Other">Other / Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editPhotoNotes">Notes:</label>
+          <input type="text" id="editPhotoNotes" placeholder="Notes">
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <button type="button" class="btn" style="color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4);" onclick="deleteCurrentEditPhoto()">🗑️ Delete Photo</button>
+          <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn" onclick="closePhotoEditModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Fullscreen Image Lightbox -->
+  <div id="photoLightboxModal" class="modal-overlay" onclick="closeLightbox(event)">
+    <div class="modal-box" style="max-width: 90vw; width: auto; background: transparent; border: none; padding: 0; box-shadow: none; position: relative;">
+      <div style="position: absolute; top: -40px; right: 0; z-index: 10; display: flex; gap: 8px;">
+        <button class="btn btn-sm" id="lightboxDeleteBtn" onclick="deleteLightboxPhoto(event)" style="color: var(--accent-rose);">🗑️ Delete</button>
+        <button class="btn btn-sm" onclick="closeLightbox(event)">✕ Close</button>
+      </div>
+      <img id="lightboxImg" src="" style="max-height: 85vh; max-width: 90vw; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <div id="lightboxCaption" style="text-align: center; margin-top: 10px; color: #fff; font-size: 13px; font-weight: 500;"></div>
     </div>
   </div>
 

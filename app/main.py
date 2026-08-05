@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel
 
-from app.config import PORT, APP_PASSWORD, SECRET_KEY
+from app.config import PORT, APP_PASSWORD, SECRET_KEY, PHOTOS_DIR
 from app.database import init_db
 from app.auth import create_session_token, verify_session_token
 from app.routers import (
@@ -16,7 +16,8 @@ from app.routers import (
     api_purchases,
     api_side_effects,
     api_analytics,
-    api_export
+    api_export,
+    api_photos
 )
 
 # Initialize database tables & seed data on startup
@@ -29,6 +30,9 @@ app = FastAPI(
 )
 
 BASE_DIR = Path(__file__).resolve().parent
+
+# Mount persistent photos directory before general static files
+app.mount("/static/uploads/photos", StaticFiles(directory=str(PHOTOS_DIR)), name="photos_uploads")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -42,6 +46,7 @@ app.include_router(api_purchases.router)
 app.include_router(api_side_effects.router)
 app.include_router(api_analytics.router)
 app.include_router(api_export.router)
+app.include_router(api_photos.router)
 
 class LoginRequest(BaseModel):
     password: str

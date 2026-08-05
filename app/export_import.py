@@ -11,7 +11,7 @@ def export_full_json(conn: Connection) -> Dict[str, Any]:
     tables = [
         "scales", "metrics_definitions", "scale_metrics",
         "measurements", "medications", "injections",
-        "purchases", "side_effects", "user_settings"
+        "purchases", "side_effects", "user_settings", "progress_photos"
     ]
     
     export_data = {
@@ -74,7 +74,7 @@ def import_full_json(conn: Connection, payload: Dict[str, Any], overwrite: bool 
     
     if overwrite:
         tables = [
-            "side_effects", "purchases", "injections", "measurements",
+            "progress_photos", "side_effects", "purchases", "injections", "measurements",
             "scale_metrics", "metrics_definitions", "scales", "medications", "user_settings"
         ]
         for t in tables:
@@ -177,6 +177,17 @@ def import_full_json(conn: Connection, payload: Dict[str, Any], overwrite: bool 
         cursor.execute("""
         INSERT OR REPLACE INTO user_settings (key, value) VALUES (?, ?);
         """, (st["key"], st["value"]))
+
+    # Import progress_photos
+    photos = payload.get("progress_photos", [])
+    ph_count = 0
+    for ph in photos:
+        cursor.execute("""
+        INSERT OR REPLACE INTO progress_photos (id, timestamp, weight_kg, angle, image_path, notes, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        """, (ph.get("id"), ph["timestamp"], ph.get("weight_kg"), ph.get("angle", "Front"), ph["image_path"], ph.get("notes"), ph.get("created_at"), ph.get("updated_at")))
+        ph_count += 1
+    counts["progress_photos"] = ph_count
 
     return counts
 

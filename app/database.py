@@ -153,6 +153,27 @@ def init_db():
         );
         """)
 
+        # 10. Progress Photos table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS progress_photos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            weight_kg REAL,
+            angle TEXT NOT NULL,
+            image_path TEXT NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_photos_timestamp ON progress_photos(timestamp);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_photos_angle ON progress_photos(angle);")
+
+        # Ensure photos directory exists
+        from app.config import PHOTOS_DIR
+        PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
+
+
         # --- SEED DEFAULT METRICS DEFINITIONS ---
         default_metrics = [
             ("weight_kg", "Weight", "kg", "body_comp", 10),

@@ -46,8 +46,12 @@ def list_measurements(
         params.append(start_date)
         
     if end_date:
-        query += " AND m.timestamp <= ?"
-        params.append(end_date)
+        if len(end_date) == 10:
+            query += " AND m.timestamp <= ?"
+            params.append(f"{end_date}T23:59:59")
+        else:
+            query += " AND m.timestamp <= ?"
+            params.append(end_date)
         
     query += " ORDER BY m.timestamp DESC LIMIT ?"
     params.append(limit)

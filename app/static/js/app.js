@@ -16,6 +16,7 @@ const HASH_TAB_MAP = {
   '#dashboard': 'tab-dashboard',
   '#log-measurement': 'tab-measurements',
   '#measurements': 'tab-measurements',
+  '#photos': 'tab-photos',
   '#injections': 'tab-injections',
   '#purchases': 'tab-purchases',
   '#side-effects': 'tab-side-effects',
@@ -26,6 +27,7 @@ const HASH_TAB_MAP = {
 const TAB_HASH_MAP = {
   'tab-dashboard': '#dashboard',
   'tab-measurements': '#log-measurement',
+  'tab-photos': '#photos',
   'tab-injections': '#injections',
   'tab-purchases': '#purchases',
   'tab-side-effects': '#side-effects',
@@ -134,6 +136,8 @@ function switchTab(tabId, updateHash = true) {
   } else if (tabId === 'tab-side-effects') {
     loadSideEffectsTable();
     loadSideEffectsAnalytics();
+  } else if (tabId === 'tab-photos') {
+    loadPhotos();
   } else if (tabId === 'tab-settings') {
     renderScalesTable();
     renderMetricsTable();
@@ -426,13 +430,64 @@ async function loadDashboardData() {
 
     // Render KPI values
     document.getElementById('kpiCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} kg` : '-- kg';
-    document.getElementById('kpiTotalLost').innerText = `Total Lost: ${dash.total_lost_kg} kg`;
+    
+    const totalLostStr = dash.total_lost_kg !== undefined ? (dash.total_lost_kg <= 0 ? `${dash.total_lost_kg} kg` : `+${dash.total_lost_kg} kg`) : '-- kg';
+    document.getElementById('kpiTotalLost').innerText = `Total Lost: ${totalLostStr}`;
+    
+    // Relative Date for Current Weight
+    const lastDateElem = document.getElementById('kpiLastWeightDate');
+    if (lastDateElem) {
+      if (dash.latest_weight_date) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (dash.latest_weight_date === todayStr) {
+          lastDateElem.innerText = `Measured: Today`;
+        } else {
+          const diffDays = Math.round((new Date(todayStr) - new Date(dash.latest_weight_date)) / (1000 * 60 * 60 * 24));
+          if (diffDays === 1) {
+            lastDateElem.innerText = `Measured: Yesterday`;
+          } else if (diffDays > 1) {
+            lastDateElem.innerText = `Measured: ${diffDays} days ago (${dash.latest_weight_date})`;
+          } else {
+            lastDateElem.innerText = `Measured: ${dash.latest_weight_date}`;
+          }
+        }
+      } else {
+        lastDateElem.innerText = `No weight logged yet`;
+      }
+    }
+
+    // Target Weight & Remaining to Goal
     document.getElementById('kpiTargetWeight').innerText = `${dash.target_weight_kg} kg`;
+    const weightToGoalElem = document.getElementById('kpiWeightToGoal');
+    if (weightToGoalElem) {
+      if (dash.current_weight_kg !== null && dash.current_weight_kg !== undefined) {
+        const rem = dash.weight_to_goal_kg;
+        if (rem > 0) {
+          weightToGoalElem.innerText = `Remaining: ${rem.toFixed(1)} kg`;
+        } else {
+          weightToGoalElem.innerText = `Goal Reached! 🎉`;
+        }
+      } else {
+        weightToGoalElem.innerText = `Remaining: -- kg`;
+      }
+    }
 
     const proj = dash.projections || {};
     document.getElementById('kpiRate7d').innerText = proj.rate_kg_per_week ? `${proj.rate_kg_per_week} kg/wk` : '--';
     document.getElementById('kpiProjectedGoalDate').innerText = proj.projected_goal_date || 'N/A';
     document.getElementById('kpiDaysToGoal').innerText = proj.days_to_goal !== null ? `${proj.days_to_goal} days remaining` : '--';
+
+    // Render 7, 14, 30, and 90 Days Weight Prognosis Line
+    const prog = proj.prognosis || {};
+    const elem7d = document.getElementById('prog7d');
+    const elem14d = document.getElementById('prog14d');
+    const elem30d = document.getElementById('prog30d');
+    const elem90d = document.getElementById('prog90d');
+
+    if (elem7d) elem7d.innerText = (prog.in_7d_kg !== null && prog.in_7d_kg !== undefined) ? `${prog.in_7d_kg} kg` : '-- kg';
+    if (elem14d) elem14d.innerText = (prog.in_14d_kg !== null && prog.in_14d_kg !== undefined) ? `${prog.in_14d_kg} kg` : '-- kg';
+    if (elem30d) elem30d.innerText = (prog.in_30d_kg !== null && prog.in_30d_kg !== undefined) ? `${prog.in_30d_kg} kg` : '-- kg';
+    if (elem90d) elem90d.innerText = (prog.in_90d_kg !== null && prog.in_90d_kg !== undefined) ? `${prog.in_90d_kg} kg` : '-- kg';
 
     // Summary Box
     document.getElementById('projCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} kg` : '--';
@@ -1332,3 +1387,614 @@ async function deleteMedicationProfile(id) {
   }
 }
 
+// --- PROGRESS PHOTOS & BEFORE/AFTER COMPARISON MODULE ---
+
+state.photos = [];
+state.photoAngleFilter = 'All';
+state.photoSubtab = 'gallery';
+state.compareIdA = null;
+state.compareIdB = null;
+state.cmpMode = 'slider';
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function loadPhotos() {
+  try {
+    let url = '/api/photos';
+    if (state.photoAngleFilter && state.photoAngleFilter !== 'All') {
+      url += '?angle=' + encodeURIComponent(state.photoAngleFilter);
+    }
+    const res = await fetch(url);
+    if (!res.ok) return;
+    state.photos = await res.json();
+
+    renderPhotoGallery();
+    populateCompareDropdowns();
+    if (state.photoSubtab === 'compare') {
+      updateBeforeAfterComparison();
+    }
+  } catch (e) {
+    console.error('Error loading progress photos:', e);
+  }
+}
+
+function filterPhotoAngle(angle) {
+  state.photoAngleFilter = angle;
+  document.querySelectorAll('#photoAnglePills .pill-btn').forEach(btn => {
+    const text = btn.innerText.trim();
+    btn.classList.toggle('active', text === angle || (angle === 'All' && text.includes('All')));
+  });
+  loadPhotos();
+}
+
+function switchPhotoSubtab(subtab) {
+  state.photoSubtab = subtab;
+  const btnGallery = document.getElementById('btnPhotoSubtabGallery');
+  const btnCompare = document.getElementById('btnPhotoSubtabCompare');
+  const galleryView = document.getElementById('photosGalleryView');
+  const compareView = document.getElementById('photosCompareView');
+  const filterBar = document.getElementById('photoGalleryFilterBar');
+
+  if (subtab === 'gallery') {
+    if (btnGallery) btnGallery.classList.add('active');
+    if (btnCompare) btnCompare.classList.remove('active');
+    if (galleryView) galleryView.style.display = 'block';
+    if (compareView) compareView.style.display = 'none';
+    if (filterBar) filterBar.style.display = 'flex';
+  } else {
+    if (btnCompare) btnCompare.classList.add('active');
+    if (btnGallery) btnGallery.classList.remove('active');
+    if (galleryView) galleryView.style.display = 'none';
+    if (compareView) compareView.style.display = 'block';
+    if (filterBar) filterBar.style.display = 'none';
+
+    updateBeforeAfterComparison();
+    setTimeout(initSplitSliderEvents, 50);
+  }
+}
+
+function renderPhotoGallery() {
+  const photoGrid = document.getElementById('photoGrid');
+  const emptyState = document.getElementById('photoGridEmpty');
+  const countLabel = document.getElementById('photoCountLabel');
+
+  if (countLabel) countLabel.innerText = `${state.photos.length} photo${state.photos.length !== 1 ? 's' : ''}`;
+
+  if (!state.photos || state.photos.length === 0) {
+    if (photoGrid) photoGrid.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+  if (photoGrid) photoGrid.style.display = 'grid';
+
+  const sortedByDateAsc = [...state.photos].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const earliestDate = sortedByDateAsc.length > 0 ? sortedByDateAsc[0].timestamp : null;
+  const baselinePhotoWithWeight = sortedByDateAsc.find(p => p.weight_kg !== null && p.weight_kg !== undefined);
+  const baselineWeight = baselinePhotoWithWeight ? baselinePhotoWithWeight.weight_kg : null;
+
+  photoGrid.innerHTML = state.photos.map(p => {
+    const angleLower = (p.angle || 'front').toLowerCase().replace(/\s+/g, '-');
+    const angleClass = `badge-angle-${angleLower}`;
+    
+    let weightDiffHtml = '';
+    const isBaselineDate = (p.timestamp === earliestDate);
+
+    if (isBaselineDate) {
+      weightDiffHtml = `<span style="font-size: 10px; color: var(--accent-cyan); font-weight: 600;">Baseline Date</span>`;
+    } else if (p.weight_kg !== null && p.weight_kg !== undefined && baselineWeight !== null) {
+      const diff = p.weight_kg - baselineWeight;
+      const sign = diff > 0 ? '+' : '';
+      const color = diff <= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)';
+      weightDiffHtml = `<span style="font-size: 11px; color: ${color}; font-weight: 600; font-family: var(--font-mono);">${sign}${diff.toFixed(1)} kg vs start</span>`;
+    }
+
+    const weightDisplay = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg} kg` : 'No weight tag';
+
+    return `
+      <div class="photo-card">
+        <div class="photo-badge-group">
+          <span class="badge badge-angle ${angleClass}">${escapeHtml(p.angle || 'Front')}</span>
+          <span class="badge badge-date">${escapeHtml(p.timestamp)}</span>
+        </div>
+        <div class="badge-weight">${weightDisplay}</div>
+        <div class="photo-img-wrapper" onclick="openLightbox('${p.image_path}', '${escapeHtml(p.timestamp)} | ${escapeHtml(p.angle)} | ${weightDisplay}', ${p.id})">
+          <img src="${p.image_path}" class="photo-img" alt="${escapeHtml(p.angle)} photo from ${escapeHtml(p.timestamp)}" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--accent-rose);font-size:11px;padding:12px;text-align:center;background:#111;\'>⚠️ Image lost on container restart.<br><br>Please delete & re-upload.</div>';">
+        </div>
+        <div class="photo-info">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color: var(--text-main); font-size: 13px;">${escapeHtml(p.timestamp)}</strong>
+            ${weightDiffHtml}
+          </div>
+          ${p.notes ? `<div class="photo-notes">${escapeHtml(p.notes)}</div>` : ''}
+          <div class="photo-actions">
+            <button class="btn btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="selectPhotoForCompare(${p.id})">
+              ⚖️ Compare
+            </button>
+            <div style="display: flex; gap: 4px;">
+              <button class="btn btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="openPhotoEditModal(${p.id})">✏️ Edit</button>
+              <button class="btn btn-sm" style="font-size: 11px; padding: 2px 8px; color: var(--accent-rose);" onclick="deletePhoto(${p.id})">🗑️ Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectPhotoForCompare(photoId) {
+  if (!state.compareIdA || state.compareIdA === photoId) {
+    state.compareIdA = photoId;
+  } else {
+    state.compareIdB = photoId;
+  }
+  switchPhotoSubtab('compare');
+}
+
+function populateCompareDropdowns() {
+  const selectA = document.getElementById('compareSelectA');
+  const selectB = document.getElementById('compareSelectB');
+  if (!selectA || !selectB) return;
+
+  const sortedAsc = [...state.photos].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  if (sortedAsc.length === 0) {
+    selectA.innerHTML = '<option value="">No photos uploaded</option>';
+    selectB.innerHTML = '<option value="">No photos uploaded</option>';
+    return;
+  }
+
+  const optionsHtml = sortedAsc.map(p => {
+    const wt = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg}kg` : 'No weight';
+    return `<option value="${p.id}">${p.timestamp} — ${p.angle} (${wt})</option>`;
+  }).join('');
+
+  selectA.innerHTML = optionsHtml;
+  selectB.innerHTML = optionsHtml;
+
+  if (!state.compareIdA || !state.photos.find(p => p.id === state.compareIdA)) {
+    state.compareIdA = sortedAsc[0].id;
+  }
+  if (!state.compareIdB || !state.photos.find(p => p.id === state.compareIdB)) {
+    state.compareIdB = sortedAsc[sortedAsc.length - 1].id;
+  }
+
+  selectA.value = state.compareIdA;
+  selectB.value = state.compareIdB;
+}
+
+function updateBeforeAfterComparison() {
+  const selectA = document.getElementById('compareSelectA');
+  const selectB = document.getElementById('compareSelectB');
+  if (selectA) state.compareIdA = parseInt(selectA.value);
+  if (selectB) state.compareIdB = parseInt(selectB.value);
+
+  const photoA = state.photos.find(p => p.id === state.compareIdA);
+  const photoB = state.photos.find(p => p.id === state.compareIdB);
+
+  if (!photoA || !photoB) return;
+
+  const dateA = new Date(photoA.timestamp);
+  const dateB = new Date(photoB.timestamp);
+  const diffTime = Math.abs(dateB - dateA);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  const wtA = photoA.weight_kg;
+  const wtB = photoB.weight_kg;
+
+  let weightDiffText = '--';
+  let weightRangeText = '--';
+  let lossRateText = '--';
+
+  if (wtA !== null && wtB !== null && wtA !== undefined && wtB !== undefined) {
+    const diffWt = wtB - wtA;
+    const sign = diffWt > 0 ? '+' : '';
+    weightDiffText = `${sign}${diffWt.toFixed(1)} kg`;
+    weightRangeText = `${wtA} kg ➔ ${wtB} kg`;
+
+    if (diffDays > 0) {
+      const weeklyRate = (diffWt / (diffDays / 7)).toFixed(2);
+      lossRateText = `${weeklyRate} kg/wk`;
+    }
+  }
+
+  const kpiWeightDiff = document.getElementById('cmpKpiWeightDiff');
+  const kpiWeightRange = document.getElementById('cmpKpiWeightRange');
+  const kpiDays = document.getElementById('cmpKpiDays');
+  const kpiDateRange = document.getElementById('cmpKpiDateRange');
+  const kpiRate = document.getElementById('cmpKpiRate');
+  const kpiAngle = document.getElementById('cmpKpiAngle');
+  const kpiAngleSub = document.getElementById('cmpKpiAngleSub');
+
+  if (kpiWeightDiff) {
+    kpiWeightDiff.innerText = weightDiffText;
+    if (wtA !== null && wtB !== null) {
+      const isLoss = (wtB - wtA) <= 0;
+      kpiWeightDiff.style.color = isLoss ? 'var(--accent-emerald)' : 'var(--accent-rose)';
+    }
+  }
+  if (kpiWeightRange) kpiWeightRange.innerText = weightRangeText;
+  if (kpiDays) kpiDays.innerText = `${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+  if (kpiDateRange) kpiDateRange.innerText = `${photoA.timestamp} ➔ ${photoB.timestamp}`;
+  if (kpiRate) kpiRate.innerText = lossRateText;
+  if (kpiAngle) kpiAngle.innerText = `${photoA.angle} / ${photoB.angle}`;
+  if (kpiAngleSub) kpiAngleSub.innerText = photoA.angle === photoB.angle ? '🎯 Matching camera angles' : '⚠️ Different camera angles';
+
+  const baImgBefore = document.getElementById('baImgBefore');
+  const baImgAfter = document.getElementById('baImgAfter');
+
+  if (baImgBefore) baImgBefore.src = photoA.image_path;
+  if (baImgAfter) baImgAfter.src = photoB.image_path;
+
+  const sideBeforeHeader = document.getElementById('sideBeforeHeader');
+  const sideBeforeImg = document.getElementById('sideBeforeImg');
+  const sideBeforeSub = document.getElementById('sideBeforeSub');
+
+  const sideAfterHeader = document.getElementById('sideAfterHeader');
+  const sideAfterImg = document.getElementById('sideAfterImg');
+  const sideAfterSub = document.getElementById('sideAfterSub');
+
+  if (sideBeforeHeader) sideBeforeHeader.innerText = `BEFORE: ${photoA.timestamp} (${photoA.angle})`;
+  if (sideBeforeImg) sideBeforeImg.src = photoA.image_path;
+  if (sideBeforeSub) sideBeforeSub.innerText = `Weight: ${photoA.weight_kg !== null ? photoA.weight_kg + ' kg' : 'N/A'} ${photoA.notes ? '| ' + photoA.notes : ''}`;
+
+  if (sideAfterHeader) sideAfterHeader.innerText = `AFTER: ${photoB.timestamp} (${photoB.angle})`;
+  if (sideAfterImg) sideAfterImg.src = photoB.image_path;
+  if (sideAfterSub) sideAfterSub.innerText = `Weight: ${photoB.weight_kg !== null ? photoB.weight_kg + ' kg' : 'N/A'} ${photoB.notes ? '| ' + photoB.notes : ''}`;
+}
+
+function swapBeforeAfterPhotos() {
+  const selectA = document.getElementById('compareSelectA');
+  const selectB = document.getElementById('compareSelectB');
+  if (!selectA || !selectB) return;
+  const temp = selectA.value;
+  selectA.value = selectB.value;
+  selectB.value = temp;
+  updateBeforeAfterComparison();
+}
+
+function autoSelectSameAngleCompare() {
+  const frontPhotos = state.photos.filter(p => (p.angle || '').toLowerCase() === 'front');
+  if (frontPhotos.length < 2) {
+    alert('You need at least 2 Front angle photos to auto-match.');
+    return;
+  }
+  const sorted = [...frontPhotos].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  state.compareIdA = sorted[0].id;
+  state.compareIdB = sorted[sorted.length - 1].id;
+
+  populateCompareDropdowns();
+  updateBeforeAfterComparison();
+}
+
+function setCmpMode(mode) {
+  state.cmpMode = mode;
+  const btnSlider = document.getElementById('btnCmpModeSlider');
+  const btnSide = document.getElementById('btnCmpModeSide');
+  const viewSlider = document.getElementById('cmpViewSlider');
+  const viewSide = document.getElementById('cmpViewSide');
+
+  if (mode === 'slider') {
+    if (btnSlider) btnSlider.classList.add('active');
+    if (btnSide) btnSide.classList.remove('active');
+    if (viewSlider) viewSlider.style.display = 'block';
+    if (viewSide) viewSide.style.display = 'none';
+    setTimeout(initSplitSliderEvents, 50);
+  } else {
+    if (btnSide) btnSide.classList.add('active');
+    if (btnSlider) btnSlider.classList.remove('active');
+    if (viewSlider) viewSlider.style.display = 'none';
+    if (viewSide) viewSide.style.display = 'grid';
+    state.cmpMode = 'side';
+  }
+}
+
+let isBaDragging = false;
+
+function initSplitSliderEvents() {
+  const container = document.getElementById('baSliderContainer');
+  const handle = document.getElementById('baHandle');
+  const overlay = document.getElementById('baOverlay');
+  const imgBefore = document.getElementById('baImgBefore');
+  if (!container || !handle || !overlay) return;
+
+  function syncImageWidth() {
+    if (imgBefore && container && container.offsetWidth > 0) {
+      imgBefore.style.width = container.offsetWidth + 'px';
+      imgBefore.style.maxWidth = container.offsetWidth + 'px';
+    }
+  }
+
+  syncImageWidth();
+  window.addEventListener('resize', syncImageWidth);
+
+  function setSliderPos(clientX) {
+    syncImageWidth();
+    const rect = container.getBoundingClientRect();
+    let x = clientX - rect.left;
+    if (x < 0) x = 0;
+    if (x > rect.width) x = rect.width;
+
+    const pct = (x / rect.width) * 100;
+    overlay.style.width = pct + '%';
+    handle.style.left = pct + '%';
+  }
+
+  handle.onmousedown = (e) => {
+    isBaDragging = true;
+    e.preventDefault();
+  };
+
+  container.onmousedown = (e) => {
+    isBaDragging = true;
+    setSliderPos(e.clientX);
+  };
+
+  window.onmousemove = (e) => {
+    if (!isBaDragging) return;
+    setSliderPos(e.clientX);
+  };
+
+  window.onmouseup = () => {
+    isBaDragging = false;
+  };
+
+  handle.ontouchstart = (e) => {
+    isBaDragging = true;
+  };
+
+  container.ontouchstart = (e) => {
+    isBaDragging = true;
+    if (e.touches && e.touches[0]) setSliderPos(e.touches[0].clientX);
+  };
+
+  window.ontouchmove = (e) => {
+    if (!isBaDragging) return;
+    if (e.touches && e.touches[0]) setSliderPos(e.touches[0].clientX);
+  };
+
+  window.ontouchend = () => {
+    isBaDragging = false;
+  };
+}
+
+function openPhotoUploadModal() {
+  const modal = document.getElementById('photoUploadModal');
+  if (!modal) return;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  document.getElementById('photoDate').value = todayStr;
+  document.getElementById('photoWeight').value = '';
+  document.getElementById('photoAngle').value = 'Front';
+  document.getElementById('photoFileInput').value = '';
+  document.getElementById('photoNotes').value = '';
+  document.getElementById('photoPreviewBox').style.display = 'none';
+
+  autoFetchWeightForDate(todayStr);
+  modal.classList.add('open');
+}
+
+function closePhotoUploadModal() {
+  const modal = document.getElementById('photoUploadModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function previewPhotoFile(event) {
+  const file = event.target.files[0];
+  const box = document.getElementById('photoPreviewBox');
+  const img = document.getElementById('photoPreviewImg');
+  if (file && box && img) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target.result;
+      box.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function autoFetchWeightForDate(dateStr) {
+  if (!dateStr) return;
+  try {
+    const res = await fetch(`/api/measurements?start_date=${dateStr}&end_date=${dateStr}`);
+    if (!res.ok) return;
+    const items = await res.json();
+    if (items && items.length > 0) {
+      const latest = items[0];
+      if (latest.data && latest.data.weight_kg !== undefined) {
+        document.getElementById('photoWeight').value = latest.data.weight_kg;
+        const hint = document.getElementById('photoWeightHint');
+        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} kg from ${latest.scale_name || 'logged scale'}`;
+      }
+    } else {
+      const hint = document.getElementById('photoWeightHint');
+      if (hint) hint.innerText = `No scale measurement recorded on ${dateStr}`;
+    }
+  } catch (e) {
+    console.error('Error fetching weight for date:', e);
+  }
+}
+
+function fetchWeightForSelectedDate() {
+  const dateVal = document.getElementById('photoDate').value;
+  if (dateVal) autoFetchWeightForDate(dateVal);
+}
+
+async function handleSavePhotoUpload(event) {
+  event.preventDefault();
+  const fileInput = document.getElementById('photoFileInput');
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Please select an image file to upload.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+  formData.append('timestamp', document.getElementById('photoDate').value);
+  formData.append('weight_kg', document.getElementById('photoWeight').value);
+  formData.append('angle', document.getElementById('photoAngle').value);
+  formData.append('notes', document.getElementById('photoNotes').value);
+
+  const btn = document.getElementById('photoSubmitBtn');
+  if (btn) { btn.disabled = true; btn.innerText = 'Uploading...'; }
+
+  try {
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (res.ok) {
+      closePhotoUploadModal();
+      await loadPhotos();
+      alert('Progress photo uploaded successfully!');
+    } else {
+      const err = await res.json();
+      alert('Upload failed: ' + (err.detail || 'Error uploading file'));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('An error occurred during photo upload.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = 'Upload Photo'; }
+  }
+}
+
+async function fetchWeightForEditDate() {
+  const dateVal = document.getElementById('editPhotoDate').value;
+  if (!dateVal) return;
+  try {
+    const res = await fetch(`/api/measurements?start_date=${dateVal}&end_date=${dateVal}`);
+    if (!res.ok) return;
+    const items = await res.json();
+    const hint = document.getElementById('editPhotoWeightHint');
+    if (items && items.length > 0) {
+      const latest = items[0];
+      if (latest.data && latest.data.weight_kg !== undefined) {
+        document.getElementById('editPhotoWeight').value = latest.data.weight_kg;
+        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} kg from ${latest.scale_name || 'logged scale'}`;
+      }
+    } else {
+      if (hint) hint.innerText = `No scale measurement recorded on ${dateVal}`;
+    }
+  } catch (e) {
+    console.error('Error fetching weight for edit date:', e);
+  }
+}
+
+function openPhotoEditModal(photoId) {
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
+  document.getElementById('editPhotoId').value = photo.id;
+  document.getElementById('editPhotoDate').value = photo.timestamp;
+  document.getElementById('editPhotoWeight').value = photo.weight_kg !== null ? photo.weight_kg : '';
+  document.getElementById('editPhotoAngle').value = photo.angle || 'Front';
+  document.getElementById('editPhotoNotes').value = photo.notes || '';
+
+  const hint = document.getElementById('editPhotoWeightHint');
+  if (hint) hint.innerText = 'Click fetch to auto-fill scale measurement from that day';
+
+  if (photo.weight_kg === null || photo.weight_kg === undefined) {
+    fetchWeightForEditDate();
+  }
+
+  const modal = document.getElementById('photoEditModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closePhotoEditModal() {
+  const modal = document.getElementById('photoEditModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function handleSavePhotoEdit(event) {
+  event.preventDefault();
+  const photoId = document.getElementById('editPhotoId').value;
+  const payload = {
+    timestamp: document.getElementById('editPhotoDate').value,
+    weight_kg: document.getElementById('editPhotoWeight').value ? parseFloat(document.getElementById('editPhotoWeight').value) : null,
+    angle: document.getElementById('editPhotoAngle').value,
+    notes: document.getElementById('editPhotoNotes').value
+  };
+
+  try {
+    const res = await fetch(`/api/photos/${photoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      closePhotoEditModal();
+      await loadPhotos();
+    } else {
+      alert('Failed to update photo details.');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+let currentLightboxPhotoId = null;
+
+function openLightbox(imgUrl, captionText, photoId = null) {
+  const modal = document.getElementById('photoLightboxModal');
+  const img = document.getElementById('lightboxImg');
+  const cap = document.getElementById('lightboxCaption');
+  const delBtn = document.getElementById('lightboxDeleteBtn');
+  currentLightboxPhotoId = photoId;
+
+  if (modal && img) {
+    img.src = imgUrl;
+    if (cap) cap.innerText = captionText || '';
+    if (delBtn) delBtn.style.display = photoId ? 'inline-block' : 'none';
+    modal.classList.add('open');
+  }
+}
+
+function closeLightbox(event) {
+  if (event) event.stopPropagation();
+  const modal = document.getElementById('photoLightboxModal');
+  if (modal) modal.classList.remove('open');
+  currentLightboxPhotoId = null;
+}
+
+async function deleteLightboxPhoto(event) {
+  if (event) event.stopPropagation();
+  if (!currentLightboxPhotoId) return;
+  const pId = currentLightboxPhotoId;
+  closeLightbox();
+  await deletePhoto(pId);
+}
+
+async function deleteCurrentEditPhoto() {
+  const photoId = document.getElementById('editPhotoId').value;
+  if (!photoId) return;
+  closePhotoEditModal();
+  await deletePhoto(parseInt(photoId));
+}
+
+async function deletePhoto(photoId) {
+  if (!confirm('Are you sure you want to delete this progress photo?')) return;
+  try {
+    const res = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadPhotos();
+      alert('Progress photo deleted successfully.');
+    } else {
+      const err = await res.json();
+      alert('Delete failed: ' + (err.detail || 'Failed to delete photo'));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('An error occurred while deleting the photo.');
+  }
+}

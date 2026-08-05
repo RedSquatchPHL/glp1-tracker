@@ -146,7 +146,13 @@ def calculate_linear_projections(
             "days_to_goal": None,
             "lean_mass_warning": False,
             "muscle_loss_ratio_pct": 0.0,
-            "warning_message": "Insufficient date spread for projection calculation."
+            "warning_message": "Insufficient date spread for projection calculation.",
+            "prognosis": {
+                "in_7d_kg": round(parsed_points[-1]["weight_kg"], 1),
+                "in_14d_kg": round(parsed_points[-1]["weight_kg"], 1),
+                "in_30d_kg": round(parsed_points[-1]["weight_kg"], 1),
+                "in_90d_kg": round(parsed_points[-1]["weight_kg"], 1)
+            }
         }
 
     mean_x = sum(xs) / n
@@ -204,6 +210,12 @@ def calculate_linear_projections(
                     f"Consider increasing protein intake and incorporating resistance training."
                 )
 
+    # Weight prognosis (7, 14, 30, 90 days out)
+    prog_7d = round(current_weight + (slope_kg_per_day * 7), 1) if current_weight is not None else None
+    prog_14d = round(current_weight + (slope_kg_per_day * 14), 1) if current_weight is not None else None
+    prog_30d = round(current_weight + (slope_kg_per_day * 30), 1) if current_weight is not None else None
+    prog_90d = round(current_weight + (slope_kg_per_day * 90), 1) if current_weight is not None else None
+
     return {
         "window_days": window_days,
         "current_weight_kg": current_weight,
@@ -215,5 +227,11 @@ def calculate_linear_projections(
         "total_weight_change": total_weight_change,
         "lean_mass_warning": lean_mass_warning,
         "muscle_loss_ratio_pct": muscle_loss_ratio_pct,
-        "warning_message": warning_message
+        "warning_message": warning_message,
+        "prognosis": {
+            "in_7d_kg": prog_7d,
+            "in_14d_kg": prog_14d,
+            "in_30d_kg": prog_30d,
+            "in_90d_kg": prog_90d
+        }
     }
