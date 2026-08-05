@@ -12,21 +12,50 @@ let state = {
   sideEffectsChart: null
 };
 
+const HASH_TAB_MAP = {
+  '#dashboard': 'tab-dashboard',
+  '#log-measurement': 'tab-measurements',
+  '#measurements': 'tab-measurements',
+  '#injections': 'tab-injections',
+  '#purchases': 'tab-purchases',
+  '#side-effects': 'tab-side-effects',
+  '#settings': 'tab-settings',
+  '#export': 'tab-export'
+};
+
+const TAB_HASH_MAP = {
+  'tab-dashboard': '#dashboard',
+  'tab-measurements': '#log-measurement',
+  'tab-injections': '#injections',
+  'tab-purchases': '#purchases',
+  'tab-side-effects': '#side-effects',
+  'tab-settings': '#settings',
+  'tab-export': '#export'
+};
+
 // Initialize application on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   initApp();
+  window.addEventListener('hashchange', handleHashChange);
 });
 
 async function initApp() {
   initTheme();
   setInitialTimestamps();
   await checkAuthStatus();
+  handleHashChange();
   await loadScalesAndMetrics();
   await loadMedications();
   await loadDashboardData();
   await loadRotationSummary();
   await loadFinancialStats();
   await loadSideEffectsAnalytics();
+}
+
+function handleHashChange() {
+  const hash = window.location.hash || '#dashboard';
+  const targetTab = HASH_TAB_MAP[hash] || 'tab-dashboard';
+  switchTab(targetTab, false);
 }
 
 function initTheme() {
@@ -63,21 +92,26 @@ function setInitialTimestamps() {
   const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
   const todayDate = now.toISOString().slice(0, 10);
 
-  if (document.getElementById('measTimestamp')) document.getElementById('measTimestamp').value = localIso;
+  if (document.getElementById('measDate')) document.getElementById('measDate').value = todayDate;
+  if (document.getElementById('measTime')) document.getElementById('measTime').value = '';
   if (document.getElementById('injTimestamp')) document.getElementById('injTimestamp').value = localIso;
   if (document.getElementById('seTimestamp')) document.getElementById('seTimestamp').value = localIso;
   if (document.getElementById('purDate')) document.getElementById('purDate').value = todayDate;
 }
 
-// Tab Switching logic
-function switchTab(tabId) {
+function switchTab(tabId, updateHash = true) {
   if (tabId !== 'tab-dashboard' && !state.isAuthenticated) {
     toggleAuthModal();
     alert('Protected View: Unauthenticated guests can only view the Dashboard. Please log in to view or modify data.');
+    window.location.hash = '#dashboard';
     return;
   }
 
   state.currentTab = tabId;
+  if (updateHash && TAB_HASH_MAP[tabId]) {
+    history.replaceState(null, null, TAB_HASH_MAP[tabId]);
+  }
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
@@ -220,8 +254,20 @@ async function handleSaveMeasurement(event) {
   event.preventDefault();
   const editId = document.getElementById('measEditId').value;
   const scaleId = parseInt(document.getElementById('measScaleSelect').value);
-  const timestamp = document.getElementById('measTimestamp').value;
+  const dateVal = document.getElementById('measDate').value;
+  const timeVal = document.getElementById('measTime').value;
   const notes = document.getElementById('measNotes').value;
+
+  // Build timestamp string
+  let timestamp = dateVal;
+  if (timeVal) {
+    timestamp = `${dateVal}T${timeVal}`;
+  } else {
+    // If time is omitted, append current time under the hood so multiple entries on the same date remain distinct
+    const now = new Date();
+    const timeStr = now.toTimeString().slice(0, 8);
+    timestamp = `${dateVal}T${timeStr}`;
+  }
 
   // Gather metric values
   const inputs = document.querySelectorAll('#dynamicFieldsGrid input[data-metric-key]');
@@ -290,7 +336,15 @@ async function loadMeasurementsTable() {
     }
 
     logs.forEach(l => {
-      const dateFormatted = l.timestamp ? l.timestamp.replace('T', ' ') : '';
+      // Display date YYYY-MM-DD (plus time if explicitly provided)
+      let dateFormatted = l.timestamp ? l.timestamp.slice(0, 10) : '';
+      if (l.timestamp && l.timestamp.includes('T')) {
+        const timePart = l.timestamp.split('T')[1].slice(0, 5);
+        if (timePart && timePart !== '00:00') {
+          dateFormatted += ` ${timePart}`;
+        }
+      }
+
       const w = l.data.weight_kg !== undefined ? l.data.weight_kg + ' kg' : '--';
       const fat = l.data.body_fat_pct !== undefined ? l.data.body_fat_pct + ' %' : '--';
       const muscle = l.data.muscle_mass_kg !== undefined ? l.data.muscle_mass_kg + ' kg' : '--';
@@ -325,7 +379,13 @@ async function editMeasurement(id) {
     document.getElementById('measScaleSelect').value = meas.scale_id;
     renderDynamicScaleForm();
 
-    document.getElementById('measTimestamp').value = meas.timestamp ? meas.timestamp.slice(0, 16) : '';
+    if (meas.timestamp) {
+      const parts = meas.timestamp.split('T');
+      if (document.getElementById('measDate')) document.getElementById('measDate').value = parts[0];
+      if (document.getElementById('measTime') && parts[1]) {
+        document.getElementById('measTime').value = parts[1].slice(0, 5);
+      }
+    }
     document.getElementById('measNotes').value = meas.notes || '';
 
     // Fill in metric input fields
