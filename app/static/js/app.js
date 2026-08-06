@@ -173,6 +173,22 @@ async function loadMedications() {
   }
 }
 
+function onDashScaleFilterChange() {
+  const dashSelect = document.getElementById('dashScaleFilter');
+  if (dashSelect) {
+    localStorage.setItem('glp1_selected_scale_filter', dashSelect.value);
+  }
+  loadDashboardData();
+}
+
+function onDashWindowDaysChange() {
+  const winSelect = document.getElementById('dashWindowDays');
+  if (winSelect) {
+    localStorage.setItem('glp1_selected_window_days', winSelect.value);
+  }
+  loadDashboardData();
+}
+
 function populateScaleSelects() {
   const dashSelect = document.getElementById('dashScaleFilter');
   const formSelect = document.getElementById('measScaleSelect');
@@ -182,6 +198,10 @@ function populateScaleSelects() {
     state.scales.forEach(s => {
       dashSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
     });
+    const savedScale = localStorage.getItem('glp1_selected_scale_filter');
+    if (savedScale !== null && dashSelect.querySelector(`option[value="${savedScale}"]`)) {
+      dashSelect.value = savedScale;
+    }
   }
 
   if (formSelect) {
@@ -191,6 +211,14 @@ function populateScaleSelects() {
     });
     if (state.scales.length > 0) {
       formSelect.value = state.scales[0].id;
+    }
+  }
+
+  const winDaysSelect = document.getElementById('dashWindowDays');
+  if (winDaysSelect) {
+    const savedWin = localStorage.getItem('glp1_selected_window_days');
+    if (savedWin !== null && winDaysSelect.querySelector(`option[value="${savedWin}"]`)) {
+      winDaysSelect.value = savedWin;
     }
   }
 }
@@ -221,7 +249,7 @@ function updateDoseStepOptions() {
 }
 
 /* SECTION 3 & 4: DYNAMIC MEASUREMENT INPUT FORM */
-function renderDynamicScaleForm() {
+function renderDynamicScaleForm(extraKeys = []) {
   const scaleSelect = document.getElementById('measScaleSelect');
   if (!scaleSelect || !scaleSelect.value) return;
 
@@ -236,7 +264,8 @@ function renderDynamicScaleForm() {
   fieldsGrid.innerHTML = '';
 
   const assignedKeys = scale.assigned_metric_keys || [];
-  const assignedMetrics = state.metrics.filter(m => assignedKeys.includes(m.key));
+  const allKeysSet = new Set([...assignedKeys, ...extraKeys]);
+  const assignedMetrics = state.metrics.filter(m => allKeysSet.has(m.key));
 
   if (assignedMetrics.length === 0) {
     fieldsGrid.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">No metrics assigned to this scale yet. Edit scale settings to assign metrics.</div>';
@@ -268,7 +297,6 @@ async function handleSaveMeasurement(event) {
   if (timeVal) {
     timestamp = `${dateVal}T${timeVal}`;
   } else {
-    // If time is omitted, append current time under the hood so multiple entries on the same date remain distinct
     const now = new Date();
     const timeStr = now.toTimeString().slice(0, 8);
     timestamp = `${dateVal}T${timeStr}`;
@@ -310,7 +338,7 @@ async function handleSaveMeasurement(event) {
       resetMeasurementForm();
       await loadMeasurementsTable();
       await loadDashboardData();
-      alert(editId ? 'Measurement log updated' : 'Measurement recorded successfully');
+      alert(editId ? 'Measurement log updated successfully' : 'Measurement recorded successfully');
     } else {
       const err = await res.json();
       alert('Error saving measurement: ' + (err.detail || 'Failed'));
@@ -324,6 +352,13 @@ async function handleSaveMeasurement(event) {
 function resetMeasurementForm() {
   document.getElementById('measEditId').value = '';
   document.getElementById('measNotes').value = '';
+  const formTitle = document.getElementById('measFormHeaderTitle');
+  if (formTitle) formTitle.innerText = 'Dynamic Scale Measurement Entry Form';
+  const cancelBtn = document.getElementById('cancelMeasEditBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  const submitBtn = document.getElementById('submitMeasBtn');
+  if (submitBtn) submitBtn.innerText = 'Save Measurement Entry';
+  
   setInitialTimestamps();
   document.querySelectorAll('#dynamicFieldsGrid input').forEach(inp => inp.value = '');
 }
@@ -341,7 +376,6 @@ async function loadMeasurementsTable() {
     }
 
     logs.forEach(l => {
-      // Display date YYYY-MM-DD (plus time if explicitly provided)
       let dateFormatted = l.timestamp ? l.timestamp.slice(0, 10) : '';
       if (l.timestamp && l.timestamp.includes('T')) {
         const timePart = l.timestamp.split('T')[1].slice(0, 5);
@@ -379,10 +413,19 @@ async function loadMeasurementsTable() {
 async function editMeasurement(id) {
   try {
     const res = await fetch(`/api/measurements/${id}`);
+    if (!res.ok) {
+      alert('Failed to load measurement details.');
+      return;
+    }
     const meas = await res.json();
     document.getElementById('measEditId').value = meas.id;
-    document.getElementById('measScaleSelect').value = meas.scale_id;
-    renderDynamicScaleForm();
+    if (meas.scale_id && document.getElementById('measScaleSelect')) {
+      document.getElementById('measScaleSelect').value = meas.scale_id;
+    }
+    
+    // Render dynamic form including any extra metric keys present in meas.data
+    const dataKeys = meas.data ? Object.keys(meas.data) : [];
+    renderDynamicScaleForm(dataKeys);
 
     if (meas.timestamp) {
       const parts = meas.timestamp.split('T');
@@ -391,19 +434,31 @@ async function editMeasurement(id) {
         document.getElementById('measTime').value = parts[1].slice(0, 5);
       }
     }
-    document.getElementById('measNotes').value = meas.notes || '';
+    if (document.getElementById('measNotes')) document.getElementById('measNotes').value = meas.notes || '';
 
-    // Fill in metric input fields
-    setTimeout(() => {
+    // Populate metric values into inputs
+    if (meas.data) {
       Object.keys(meas.data).forEach(k => {
         const inp = document.getElementById(`metric_input_${k}`);
         if (inp) inp.value = meas.data[k];
       });
-    }, 50);
+    }
 
+    // Update UI headers to indicate EDIT mode
+    const formTitle = document.getElementById('measFormHeaderTitle');
+    if (formTitle) formTitle.innerText = `✏️ Edit Measurement Entry (#${meas.id})`;
+    const cancelBtn = document.getElementById('cancelMeasEditBtn');
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    const submitBtn = document.getElementById('submitMeasBtn');
+    if (submitBtn) submitBtn.innerText = 'Update Measurement Entry';
+
+    // Switch tab and smooth scroll up to the measurement entry form
     switchTab('tab-measurements');
+    const formBox = document.getElementById('measurementForm');
+    if (formBox) formBox.scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
-    console.error(err);
+    console.error('Error editing measurement:', err);
+    alert('An error occurred while opening the measurement for editing.');
   }
 }
 
@@ -422,8 +477,29 @@ async function deleteMeasurement(id) {
 
 /* SECTION 8: DASHBOARD & LINEAR PROJECTION ENGINE */
 async function loadDashboardData() {
-  const scaleFilter = document.getElementById('dashScaleFilter').value;
-  const windowDays = document.getElementById('dashWindowDays').value;
+  const scaleFilterElem = document.getElementById('dashScaleFilter');
+  const windowDaysElem = document.getElementById('dashWindowDays');
+
+  let scaleFilter = scaleFilterElem ? scaleFilterElem.value : '0';
+  let windowDays = windowDaysElem ? windowDaysElem.value : '30';
+
+  const savedScale = localStorage.getItem('glp1_selected_scale_filter');
+  if (savedScale !== null) {
+    if (scaleFilterElem && scaleFilterElem.querySelector(`option[value="${savedScale}"]`)) {
+      scaleFilterElem.value = savedScale;
+      scaleFilter = savedScale;
+    } else if (scaleFilter === '0') {
+      scaleFilter = savedScale;
+    }
+  }
+
+  const savedWin = localStorage.getItem('glp1_selected_window_days');
+  if (savedWin !== null && windowDaysElem) {
+    if (windowDaysElem.querySelector(`option[value="${savedWin}"]`)) {
+      windowDaysElem.value = savedWin;
+      windowDays = savedWin;
+    }
+  }
 
   try {
     const res = await fetch(`/api/analytics/dashboard?scale_id=${scaleFilter}&window_days=${windowDays}`);

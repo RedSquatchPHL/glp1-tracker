@@ -159,13 +159,13 @@
       <div class="toolbar">
         <div class="toolbar-group">
           <label for="dashScaleFilter" class="toolbar-label">Data Source Scale Filter:</label>
-          <select id="dashScaleFilter" onchange="loadDashboardData()" style="width: 220px;">
+          <select id="dashScaleFilter" onchange="onDashScaleFilterChange()" style="width: 220px;">
             <option value="0">All Scale Sources (Unified)</option>
           </select>
         </div>
         <div class="toolbar-group">
           <label for="dashWindowDays" class="toolbar-label">Projection Window:</label>
-          <select id="dashWindowDays" onchange="loadDashboardData()" style="width: 180px;">
+          <select id="dashWindowDays" onchange="onDashWindowDaysChange()" style="width: 180px;">
             <option value="7">Last 7 Days</option>
             <option value="14">Last 14 Days</option>
             <option value="30" selected>Last 30 Days</option>
@@ -247,7 +247,7 @@
     <section id="tab-measurements" class="tab-content">
       <div class="panel">
         <div class="panel-header">
-          <div class="panel-title">
+          <div class="panel-title" id="measFormHeaderTitle">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
             Dynamic Scale Measurement Entry Form
           </div>
@@ -288,8 +288,9 @@
           </div>
 
           <div style="display: flex; gap: 12px;">
-            <button type="submit" class="btn btn-primary">Save Measurement Entry</button>
+            <button type="submit" class="btn btn-primary" id="submitMeasBtn">Save Measurement Entry</button>
             <button type="button" class="btn" onclick="resetMeasurementForm()">Reset Form</button>
+            <button type="button" class="btn" id="cancelMeasEditBtn" onclick="resetMeasurementForm()" style="display: none; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.4);">Cancel Edit</button>
           </div>
         </form>
       </div>
