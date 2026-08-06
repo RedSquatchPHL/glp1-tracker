@@ -1,11 +1,27 @@
 import json
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
+from pydantic import BaseModel
 from app.database import get_db
 from app.auth import get_current_user
-from app.math_engine import calculate_moving_averages, calculate_linear_projections
+from app.math_engine import (
+    calculate_moving_averages, 
+    calculate_linear_projections,
+    calculate_pharmacokinetics,
+    calculate_body_ratios,
+    detect_weight_plateau
+)
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics & Dashboard"])
+
+class UserProfileSettings(BaseModel):
+    user_name: Optional[str] = None
+    user_dob: Optional[str] = None
+    physician_name: Optional[str] = None
+    medical_conditions: Optional[str] = None
+    target_weight_kg: Optional[float] = None
+    user_height_cm: Optional[float] = None
+    user_gender: Optional[str] = None
 
 @router.get("/dashboard")
 def get_dashboard_data(
@@ -15,10 +31,17 @@ def get_dashboard_data(
 ):
     cursor = db.cursor()
     
-    # 1. Fetch user settings (target weight)
-    cursor.execute("SELECT value FROM user_settings WHERE key = 'target_weight_kg';")
-    target_row = cursor.fetchone()
-    target_weight_kg = float(target_row[0]) if target_row else 75.0
+    # 1. Fetch user settings
+    cursor.execute("SELECT key, value FROM user_settings;")
+    settings_dict = {r["key"]: r["value"] for r in cursor.fetchall()}
+    
+    user_name = settings_dict.get("user_name", "Patient")
+    user_dob = settings_dict.get("user_dob", "")
+    physician_name = settings_dict.get("physician_name", "")
+    medical_conditions = settings_dict.get("medical_conditions", "")
+    target_weight_kg = float(settings_dict.get("target_weight_kg", "75.0"))
+    user_height_cm = float(settings_dict.get("user_height_cm", "175.0"))
+    user_gender = settings_dict.get("user_gender", "unspecified")
 
     # 2. Fetch measurements with scale filtering
     query = """
@@ -59,16 +82,42 @@ def get_dashboard_data(
         window_days=window_days or 0
     )
 
-    # 5. Fetch Medication Injections for Graph Overlays
+    # 5. Fetch Medication Injections for Pharmacokinetics & Graph Overlays
     cursor.execute("""
-    SELECT i.timestamp, i.dosage_mg, m.name as medication_name
+    SELECT i.timestamp, i.dosage_mg, i.site, m.name as medication_name, m.active_ingredient
     FROM injections i
     LEFT JOIN medications m ON i.medication_id = m.id
     ORDER BY i.timestamp ASC;
     """)
-    injection_overlays = [dict(r) for r in cursor.fetchall()]
+    injection_rows = [dict(r) for r in cursor.fetchall()]
 
-    # 6. Overall statistics
+    # 6. Pharmacokinetics Half-Life Simulator & Active Concentration Accumulation
+    pk_analysis = calculate_pharmacokinetics(injection_rows, days_ahead=14)
+
+    # 7. Automated Plateau Detection & Breakdown Engine
+    plateau_analysis = detect_weight_plateau(measurements, threshold_days=14, window_kg=0.5)
+
+    # 8. Waist-to-Height (WHtR) & Waist-to-Hip (WHR) Ratio Analysis
+    latest_waist_cm = None
+    latest_hip_cm = None
+
+    for m in reversed(measurements):
+        data = m.get("data", {})
+        if latest_waist_cm is None and data.get("waist_cm") is not None:
+            latest_waist_cm = float(data["waist_cm"])
+        if latest_hip_cm is None and data.get("hip_cm") is not None:
+            latest_hip_cm = float(data["hip_cm"])
+        if latest_waist_cm is not None and latest_hip_cm is not None:
+            break
+
+    body_ratios = calculate_body_ratios(
+        waist_cm=latest_waist_cm,
+        hip_cm=latest_hip_cm,
+        height_cm=user_height_cm,
+        gender=user_gender
+    )
+
+    # 9. Overall statistics
     latest_meas = None
     first_meas = None
     
@@ -92,7 +141,13 @@ def get_dashboard_data(
     return {
         "scale_filter_id": scale_id,
         "total_measurements_count": len(measurements),
+        "user_name": user_name,
+        "user_dob": user_dob,
+        "physician_name": physician_name,
+        "medical_conditions": medical_conditions,
         "target_weight_kg": target_weight_kg,
+        "user_height_cm": user_height_cm,
+        "user_gender": user_gender,
         "start_weight_kg": start_weight,
         "current_weight_kg": current_weight,
         "latest_weight_date": latest_weight_date,
@@ -102,8 +157,31 @@ def get_dashboard_data(
         "fat_moving_averages": fat_ma,
         "muscle_moving_averages": muscle_ma,
         "projections": projections,
-        "medication_overlays": injection_overlays
+        "pharmacokinetics": pk_analysis,
+        "plateau_analysis": plateau_analysis,
+        "body_ratios": body_ratios,
+        "medication_overlays": injection_rows
     }
+
+@router.post("/settings/user-profile")
+def update_user_profile(payload: UserProfileSettings, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    if payload.user_name is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('user_name', ?);", (str(payload.user_name).strip(),))
+    if payload.user_dob is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('user_dob', ?);", (str(payload.user_dob).strip(),))
+    if payload.physician_name is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('physician_name', ?);", (str(payload.physician_name).strip(),))
+    if payload.medical_conditions is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('medical_conditions', ?);", (str(payload.medical_conditions).strip(),))
+    if payload.target_weight_kg is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('target_weight_kg', ?);", (str(payload.target_weight_kg),))
+    if payload.user_height_cm is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('user_height_cm', ?);", (str(payload.user_height_cm),))
+    if payload.user_gender is not None:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('user_gender', ?);", (str(payload.user_gender),))
+    db.commit()
+    return {"message": "User profile settings updated successfully"}
 
 @router.post("/settings/target-weight")
 def update_target_weight(target_weight_kg: float, db = Depends(get_db), user = Depends(get_current_user)):
@@ -113,3 +191,15 @@ def update_target_weight(target_weight_kg: float, db = Depends(get_db), user = D
     """, (str(target_weight_kg),))
     db.commit()
     return {"target_weight_kg": target_weight_kg, "message": "Target weight updated"}
+
+class PreferencesSettings(BaseModel):
+    currency_symbol: Optional[str] = "€"
+
+@router.post("/settings/preferences")
+def update_preferences(payload: PreferencesSettings, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    if payload.currency_symbol:
+        cursor.execute("INSERT OR REPLACE INTO user_settings (key, value) VALUES ('currency_symbol', ?);", (payload.currency_symbol.strip(),))
+    db.commit()
+    return {"message": "Preferences updated successfully"}
+

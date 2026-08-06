@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Summary Report — GLP-1 Therapy & Body Composition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #cbd5e1;
+      --bg-subtle: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background-color: #f1f5f9;
+      padding: 24px;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    .page-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .print-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .btn-print {
+      background-color: #0284c7;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .btn-print:hover { background-color: #0369a1; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .header-title h1 {
+      font-size: 22px;
+      color: #0f172a;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .header-title p {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .card-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .card-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: #0284c7;
+      margin-top: 2px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: var(--bg-subtle);
+      font-weight: 600;
+      color: #334155;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    tr:nth-child(even) { background-color: #f8fafc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #ffe4e6; color: #9f1239; }
+    .badge-info { background: #e0f2fe; color: #075985; }
+
+    @media print {
+      body { background: #ffffff; padding: 0; font-size: 11pt; }
+      .page-container { box-shadow: none; padding: 0; max-width: 100%; }
+      .print-actions { display: none !important; }
+      .card { break-inside: avoid; }
+      table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-container">
+
+    <!-- Top Action Bar (Hidden in Print) -->
+    <div class="print-actions">
+      <div>
+        <strong style="font-size: 15px;">Clinical Summary PDF Export</strong>
+        <p style="font-size: 12px; color: var(--text-muted);">Formatted for healthcare providers, endocrinologists, and medical records.</p>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-print" onclick="window.print()">
+          🖨️ Print / Save as PDF
+        </button>
+        <a href="/" class="btn-print" style="background: #64748b;">
+          ← Back to Tracker
+        </a>
+      </div>
+    </div>
+
+    <!-- Medical Header -->
+    <div class="header">
+      <div class="header-title">
+        <h1>GLP-1 THERAPY & BODY COMPOSITION CLINICAL SUMMARY</h1>
+        <p>Patient Progress Report | Weight Velocity, Kinetics & Risk Engine</p>
+      </div>
+      <div class="header-meta">
+        <div><strong>Patient Name:</strong> {{ user_name }}</div>
+        {% if user_dob %}<div><strong>DOB:</strong> {{ user_dob }}</div>{% endif %}
+        {% if physician_name %}<div><strong>Physician / Clinic:</strong> {{ physician_name }}</div>{% endif %}
+        <div><strong>Generated Date:</strong> {{ current_date }}</div>
+        <div><strong>Patient Height:</strong> {{ user_height_cm }} cm | <strong>Gender:</strong> {{ user_gender | capitalize }}</div>
+        {% if medical_conditions %}<div><strong>Conditions:</strong> {{ medical_conditions }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Executive Summary KPIs -->
+    <div class="grid-4">
+      <div class="card">
+        <div class="card-label">Start Weight</div>
+        <div class="card-value">{{ start_weight_kg or '--' }} kg</div>
+        <div class="card-sub">Baseline Entry</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Current Weight</div>
+        <div class="card-value">{{ current_weight_kg or '--' }} kg</div>
+        <div class="card-sub">Total Lost: {{ total_lost_kg }} kg</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Target Goal Weight</div>
+        <div class="card-value">{{ target_weight_kg }} kg</div>
+        <div class="card-sub">Remaining: {{ weight_to_goal_kg }} kg</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Weekly Loss Rate</div>
+        <div class="card-value">{{ projections.rate_kg_per_week or 0.0 }} kg/wk</div>
+        <div class="card-sub">OLS Trend Slope</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Pharmacokinetics & Active Medication Steady-State -->
+    <div class="section-title">
+      1. Pharmacokinetics & Active Drug Steady-State
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Current Active Concentration</div>
+        <div class="card-value" style="color: #0284c7;">{{ pk.current_active_mg }} mg</div>
+        <div class="card-sub">Bloodstream Active Drug Level</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Medication Profile & Half-Life</div>
+        <div class="card-value" style="font-size: 15px;">{{ pk.primary_medication }} (~{{ pk.half_life_days }}d half-life)</div>
+        <div class="card-sub">Steady-State Ratio: {{ pk.steady_state_ratio }}x</div>
+      </div>
+    </div>
+
+    <!-- Section 2: Concomitant Medications Reconciliation (Non-GLP1) -->
+    <div class="section-title">
+      2. Medication Reconciliation (Concomitant Meds & Supplements)
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Medication / Supplement Name</th>
+          <th>Dosage</th>
+          <th>Frequency</th>
+          <th>Indication / Purpose</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cm in concomitant_meds %}
+        <tr>
+          <td><strong>{{ cm.name }}</strong></td>
+          <td>{{ cm.dosage }}</td>
+          <td>{{ cm.frequency }}</td>
+          <td>{{ cm.purpose or '-' }}</td>
+          <td>{{ cm.notes or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No concomitant non-GLP1 medications recorded</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Section 3: Laboratory Blood Work & Biomarkers -->
+    <div class="section-title">
+      3. Laboratory Blood Work & Biomarkers History
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>HbA1c (%)</th>
+          <th>Glucose (mg/dL)</th>
+          <th>Insulin (µIU/mL)</th>
+          <th>Lipids (Chol / Trig / HDL / LDL)</th>
+          <th>ALT / AST</th>
+          <th>TSH</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lab in labs %}
+        <tr>
+          <td><strong>{{ lab.timestamp }}</strong></td>
+          <td>{{ lab.hba1c_pct or '--' }} %</td>
+          <td>{{ lab.fasting_glucose_mgdl or '--' }} mg/dL</td>
+          <td>{{ lab.fasting_insulin_uiuml or '--' }} µIU/mL</td>
+          <td>
+            {{ lab.total_cholesterol_mgdl or '-' }} / {{ lab.triglycerides_mgdl or '-' }} / {{ lab.hdl_mgdl or '-' }} / {{ lab.ldl_mgdl or '-' }} mg/dL
+          </td>
+          <td>{{ lab.alt_ul or '-' }} / {{ lab.ast_ul or '-' }} U/L</td>
+          <td>{{ lab.tsh_uiuml or '-' }} µIU/mL</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No lab blood work entries logged</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Section 4: Cardiometabolic Risk Scores (WHtR & WHR) -->
+    <div class="section-title">
+      4. Cardiometabolic Risk & Anthropometric Ratios
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-label">Waist-to-Height Ratio (WHtR)</div>
+        <div class="card-value">{{ body_ratios.whtr or 'N/A' }}</div>
+        <div class="card-sub">Status: <strong>{{ body_ratios.whtr_status }}</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Waist-to-Hip Ratio (WHR)</div>
+        <div class="card-value">{{ body_ratios.whr or 'N/A' }}</div>
+        <div class="card-sub">Overall Risk: <strong>{{ body_ratios.cardiometabolic_risk_score }}</strong></div>
+      </div>
+    </div>
+
+    <!-- Section 5: Automated Plateau Detection & Breakdown -->
+    <div class="section-title">
+      5. Automated Weight Plateau Analysis
+    </div>
+    <div class="card" style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <strong style="font-size: 13px; color: #0f172a;">Diagnostic Classification: {{ plateau.diagnostic_type }}</strong>
+        {% if plateau.is_plateau %}
+          <span class="badge badge-warning">Active Plateau (±0.5 kg window)</span>
+        {% else %}
+          <span class="badge badge-success">Weight Loss Active</span>
+        {% endif %}
+      </div>
+      <p style="color: #334155; font-size: 12px; margin-bottom: 6px;">{{ plateau.diagnostic_insight }}</p>
+      <p style="color: var(--text-muted); font-size: 11px;"><strong>Clinical Recommendation:</strong> {{ plateau.recommendation }}</p>
+    </div>
+
+    <!-- Section 6: Dosage & Injection History -->
+    <div class="section-title">
+      6. Recent Injection Log & Dose Step-Ups
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Medication</th>
+          <th>Dose Strength (mg)</th>
+          <th>Injection Site</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inj in injections %}
+        <tr>
+          <td>{{ inj.timestamp }}</td>
+          <td>{{ inj.medication_name }}</td>
+          <td><strong>{{ inj.dosage_mg }} mg</strong></td>
+          <td>{{ inj.site_label or inj.site }}</td>
+          <td>{{ inj.notes or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No injection logs recorded</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Section 7: Side Effects & Symptom Diary Summary -->
+    <div class="section-title">
+      7. Logged Side Effects & Symptom Diary
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Symptom</th>
+          <th>Severity Level (1-5)</th>
+          <th>Notes / Action Taken</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for se in side_effects %}
+        <tr>
+          <td>{{ se.timestamp }}</td>
+          <td><strong>{{ se.symptom_name }}</strong></td>
+          <td>
+            {% if se.severity >= 4 %}
+              <span class="badge badge-danger">Level {{ se.severity }} (Severe)</span>
+            {% elif se.severity >= 3 %}
+              <span class="badge badge-warning">Level {{ se.severity }} (Moderate)</span>
+            {% else %}
+              <span class="badge badge-info">Level {{ se.severity }} (Mild)</span>
+            {% endif %}
+          </td>
+          <td>{{ se.notes or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No side effects logged</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Doctor Notes / Sign-off section -->
+    <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+      <div>Physician / Provider Signature: ___________________________</div>
+      <div>Date: _______________</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

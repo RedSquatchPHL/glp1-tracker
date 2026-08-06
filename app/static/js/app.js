@@ -21,7 +21,7 @@ const HASH_TAB_MAP = {
   '#purchases': 'tab-purchases',
   '#side-effects': 'tab-side-effects',
   '#settings': 'tab-settings',
-  '#export': 'tab-export'
+  '#export': 'tab-settings'
 };
 
 const TAB_HASH_MAP = {
@@ -31,8 +31,7 @@ const TAB_HASH_MAP = {
   'tab-injections': '#injections',
   'tab-purchases': '#purchases',
   'tab-side-effects': '#side-effects',
-  'tab-settings': '#settings',
-  'tab-export': '#export'
+  'tab-settings': '#settings'
 };
 
 // Initialize application on DOM load
@@ -141,6 +140,8 @@ function switchTab(tabId, updateHash = true) {
   } else if (tabId === 'tab-settings') {
     renderScalesTable();
     renderMetricsTable();
+    loadConcomitantMedsTable();
+    loadLabResultsTable();
   }
 }
 
@@ -434,6 +435,33 @@ async function loadDashboardData() {
     const totalLostStr = dash.total_lost_kg !== undefined ? (dash.total_lost_kg <= 0 ? `${dash.total_lost_kg} kg` : `+${dash.total_lost_kg} kg`) : '-- kg';
     document.getElementById('kpiTotalLost').innerText = `Total Lost: ${totalLostStr}`;
     
+    // Pharmacokinetics Active Drug Level KPI
+    const pk = dash.pharmacokinetics || {};
+    const activeValElem = document.getElementById('kpiActiveDrugVal');
+    const activeSubElem = document.getElementById('kpiActiveDrugSub');
+    if (activeValElem) activeValElem.innerText = pk.current_active_mg !== undefined ? `${pk.current_active_mg} mg` : '-- mg';
+    if (activeSubElem) activeSubElem.innerText = pk.primary_medication ? `${pk.primary_medication} (~${pk.half_life_days}d half-life)` : 'Bloodstream kinetics';
+
+    // Cardiometabolic Risk KPI (WHtR & WHR)
+    const ratios = dash.body_ratios || {};
+    const cardioRiskElem = document.getElementById('kpiCardioRiskVal');
+    const cardioSubElem = document.getElementById('kpiCardioRiskSub');
+    if (cardioRiskElem) {
+      cardioRiskElem.innerText = ratios.cardiometabolic_risk_score || 'N/A';
+      if (ratios.cardiometabolic_risk_score === 'High Risk') {
+        cardioRiskElem.style.color = 'var(--accent-rose)';
+      } else if (ratios.cardiometabolic_risk_score === 'Increased Risk' || ratios.cardiometabolic_risk_score === 'Moderate Risk') {
+        cardioRiskElem.style.color = 'var(--accent-amber)';
+      } else {
+        cardioRiskElem.style.color = 'var(--accent-emerald)';
+      }
+    }
+    if (cardioSubElem) {
+      const whtrStr = ratios.whtr ? ratios.whtr : '--';
+      const whrStr = ratios.whr ? ratios.whr : '--';
+      cardioSubElem.innerText = `WHtR: ${whtrStr} | WHR: ${whrStr}`;
+    }
+
     // Relative Date for Current Weight
     const lastDateElem = document.getElementById('kpiLastWeightDate');
     if (lastDateElem) {
@@ -458,6 +486,14 @@ async function loadDashboardData() {
 
     // Target Weight & Remaining to Goal
     document.getElementById('kpiTargetWeight').innerText = `${dash.target_weight_kg} kg`;
+    if (document.getElementById('userNameInput')) document.getElementById('userNameInput').value = dash.user_name || '';
+    if (document.getElementById('userDobInput')) document.getElementById('userDobInput').value = dash.user_dob || '';
+    if (document.getElementById('userPhysicianInput')) document.getElementById('userPhysicianInput').value = dash.physician_name || '';
+    if (document.getElementById('userConditionsInput')) document.getElementById('userConditionsInput').value = dash.medical_conditions || '';
+    if (document.getElementById('targetWeightInput')) document.getElementById('targetWeightInput').value = dash.target_weight_kg || 75.0;
+    if (document.getElementById('userHeightInput')) document.getElementById('userHeightInput').value = dash.user_height_cm || 175.0;
+    if (document.getElementById('userGenderSelect')) document.getElementById('userGenderSelect').value = dash.user_gender || 'unspecified';
+
     const weightToGoalElem = document.getElementById('kpiWeightToGoal');
     if (weightToGoalElem) {
       if (dash.current_weight_kg !== null && dash.current_weight_kg !== undefined) {
@@ -496,6 +532,20 @@ async function loadDashboardData() {
     document.getElementById('projDate').innerText = proj.projected_goal_date || 'N/A';
     document.getElementById('projMuscleRatio').innerText = proj.muscle_loss_ratio_pct ? `${proj.muscle_loss_ratio_pct}%` : '0%';
 
+    // Automated Plateau Detection Diagnostic Banner
+    const plateauBanner = document.getElementById('plateauWarningBanner');
+    const plateau = dash.plateau_analysis || {};
+    if (plateauBanner) {
+      if (plateau.is_plateau) {
+        plateauBanner.style.display = 'flex';
+        document.getElementById('plateauTypeTitle').innerText = `AUTOMATED PLATEAU DETECTED (${plateau.diagnostic_type.toUpperCase()}):`;
+        document.getElementById('plateauInsightText').innerText = plateau.diagnostic_insight;
+        document.getElementById('plateauRecommendationText').innerText = `Clinical Recommendation: ${plateau.recommendation}`;
+      } else {
+        plateauBanner.style.display = 'none';
+      }
+    }
+
     // Lean Mass Protection Warning Banner
     const warningBanner = document.getElementById('leanMassWarningBanner');
     if (proj.lean_mass_warning) {
@@ -505,8 +555,8 @@ async function loadDashboardData() {
       warningBanner.style.display = 'none';
     }
 
-    // Render Weight Trajectory Chart
-    renderWeightChart(dash.weight_moving_averages || [], dash.medication_overlays || []);
+    // Render Weight Trajectory Chart with Pharmacokinetics Active Drug Overlay
+    renderWeightChart(dash.weight_moving_averages || [], pk.series || []);
     // Render Body Comp Chart
     renderBodyCompChart(dash.fat_moving_averages || [], dash.muscle_moving_averages || []);
 
@@ -515,7 +565,7 @@ async function loadDashboardData() {
   }
 }
 
-function renderWeightChart(weightSeries, overlays) {
+function renderWeightChart(weightSeries, pkSeries) {
   const ctx = document.getElementById('weightChart').getContext('2d');
   if (state.weightChart) state.weightChart.destroy();
 
@@ -524,38 +574,65 @@ function renderWeightChart(weightSeries, overlays) {
   const ma7d = weightSeries.map(s => s.ma_7d);
   const ma14d = weightSeries.map(s => s.ma_14d);
 
+  // Map PK active drug levels to weightSeries dates
+  const pkMap = {};
+  if (Array.isArray(pkSeries)) {
+    pkSeries.forEach(p => pkMap[p.date] = p.active_mg);
+  }
+  const pkVals = labels.map(d => pkMap[d] !== undefined ? pkMap[d] : null);
+
+  const datasets = [
+    {
+      label: 'Raw Weight (kg)',
+      data: rawVals,
+      borderColor: '#475569',
+      backgroundColor: 'rgba(71, 85, 105, 0.1)',
+      borderWidth: 1.5,
+      pointRadius: 3,
+      tension: 0.1,
+      yAxisID: 'yWeight'
+    },
+    {
+      label: '7-Day Moving Avg',
+      data: ma7d,
+      borderColor: '#06b6d4',
+      borderWidth: 2.5,
+      pointRadius: 0,
+      tension: 0.3,
+      yAxisID: 'yWeight'
+    },
+    {
+      label: '14-Day Moving Avg',
+      data: ma14d,
+      borderColor: '#38bdf8',
+      borderWidth: 2,
+      borderDash: [5, 5],
+      pointRadius: 0,
+      tension: 0.3,
+      yAxisID: 'yWeight'
+    }
+  ];
+
+  if (pkSeries && pkSeries.length > 0) {
+    datasets.push({
+      label: 'Active Drug Level (mg)',
+      data: pkVals,
+      borderColor: '#a855f7',
+      backgroundColor: 'rgba(168, 85, 247, 0.1)',
+      borderWidth: 2,
+      borderDash: [2, 2],
+      pointRadius: 2,
+      fill: true,
+      tension: 0.4,
+      yAxisID: 'yActive'
+    });
+  }
+
   state.weightChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: labels,
-      datasets: [
-        {
-          label: 'Raw Weight (kg)',
-          data: rawVals,
-          borderColor: '#475569',
-          backgroundColor: 'rgba(71, 85, 105, 0.1)',
-          borderWidth: 1.5,
-          pointRadius: 3,
-          tension: 0.1
-        },
-        {
-          label: '7-Day Moving Avg',
-          data: ma7d,
-          borderColor: '#06b6d4',
-          borderWidth: 2.5,
-          pointRadius: 0,
-          tension: 0.3
-        },
-        {
-          label: '14-Day Moving Avg',
-          data: ma14d,
-          borderColor: '#38bdf8',
-          borderWidth: 2,
-          borderDash: [5, 5],
-          pointRadius: 0,
-          tension: 0.3
-        }
-      ]
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -565,9 +642,18 @@ function renderWeightChart(weightSeries, overlays) {
           grid: { color: '#1e293b' },
           ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
         },
-        y: {
+        yWeight: {
+          type: 'linear',
+          position: 'left',
           grid: { color: '#1e293b' },
           ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } }
+        },
+        yActive: {
+          type: 'linear',
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { color: '#a855f7', font: { family: 'JetBrains Mono', size: 11 } },
+          title: { display: true, text: 'Active Concentration (mg)', color: '#a855f7' }
         }
       },
       plugins: {
@@ -641,23 +727,322 @@ async function loadRotationSummary() {
     const badge = document.getElementById('recommendedNextSiteBadge');
     if (summary.recommended_next_site) {
       badge.innerText = `Recommended: ${summary.recommended_next_site.label}`;
+      highlightRecommendedSite(summary.recommended_next_site.site);
+    }
+
+    // Smart Injection Reminder Alert Banner on Dashboard
+    const smartReminder = summary.smart_reminder;
+    const smartBanner = document.getElementById('smartReminderBanner');
+    if (smartBanner && smartReminder) {
+      if (smartReminder.status !== 'NO_INJECTIONS') {
+        smartBanner.style.display = 'flex';
+        document.getElementById('smartReminderTitle').innerText = `SMART INJECTION REMINDER (${smartReminder.status.replace('_', ' ')}):`;
+        document.getElementById('smartReminderText').innerText = smartReminder.alert_message;
+      }
     }
 
     // Site History List
     const histList = document.getElementById('siteRotationHistoryList');
-    histList.innerHTML = '';
-    summary.site_history.forEach(sh => {
-      const lastStr = sh.last_used ? sh.last_used.slice(0, 10) : 'Never';
-      histList.innerHTML += `
-        <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding: 2px 0;">
-          <span>${sh.label}:</span>
-          <span class="num" style="color: var(--text-muted);">${lastStr} (${sh.total_uses} uses)</span>
-        </div>
-      `;
-    });
+    if (histList) {
+      histList.innerHTML = '';
+      summary.site_history.forEach(sh => {
+        const lastStr = sh.last_used ? sh.last_used.slice(0, 10) : 'Never';
+        histList.innerHTML += `
+          <div style="display:flex; justify-content:space-between; border-bottom:1px solid var(--border-subtle); padding: 2px 0;">
+            <span>${sh.label}:</span>
+            <span class="num" style="color: var(--text-muted);">${lastStr} (${sh.total_uses} uses)</span>
+          </div>
+        `;
+      });
+    }
 
   } catch (err) {
     console.error(err);
+  }
+}
+
+function highlightRecommendedSite(siteKey) {
+  document.querySelectorAll('.body-part').forEach(el => el.style.stroke = '#475569');
+  const recEl = document.getElementById(`svg_site_${siteKey}`);
+  if (recEl) {
+    recEl.style.stroke = 'var(--accent-cyan)';
+    recEl.style.strokeWidth = '2.5px';
+  }
+}
+
+async function saveUserProfileSettings(event) {
+  event.preventDefault();
+  const userName = document.getElementById('userNameInput').value;
+  const userDob = document.getElementById('userDobInput').value;
+  const physician = document.getElementById('userPhysicianInput').value;
+  const conditions = document.getElementById('userConditionsInput').value;
+  const targetW = parseFloat(document.getElementById('targetWeightInput').value);
+  const heightCm = parseFloat(document.getElementById('userHeightInput').value);
+  const gender = document.getElementById('userGenderSelect').value;
+
+  try {
+    const res = await fetch('/api/analytics/settings/user-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_name: userName,
+        user_dob: userDob,
+        physician_name: physician,
+        medical_conditions: conditions,
+        target_weight_kg: targetW,
+        user_height_cm: heightCm,
+        user_gender: gender
+      })
+    });
+    if (res.ok) {
+      await loadDashboardData();
+      alert('Patient clinical demographics & profile settings saved successfully!');
+    } else {
+      alert('Failed to save profile settings');
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/* CONCOMITANT MEDICATIONS (NON-GLP1 DAILY MEDS & SUPPLEMENTS) */
+async function loadConcomitantMedsTable() {
+  try {
+    const res = await fetch('/api/medications/concomitant/list');
+    const list = await res.json();
+    const tbody = document.getElementById('concomitantMedsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No concomitant medications logged.</td></tr>';
+      return;
+    }
+    list.forEach(m => {
+      tbody.innerHTML += `
+        <tr>
+          <td style="font-weight: 600;">${escapeHtml(m.name)}</td>
+          <td class="num">${escapeHtml(m.dosage)}</td>
+          <td>${escapeHtml(m.frequency)}</td>
+          <td>${escapeHtml(m.purpose || '')}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteConcomitantMed(${m.id})">Del</button></td>
+        </tr>
+      `;
+    });
+  } catch (e) { console.error(e); }
+}
+
+function openNewConcomitantMedModal() {
+  document.getElementById('concMedName').value = '';
+  document.getElementById('concMedDosage').value = '';
+  document.getElementById('concMedFrequency').value = '';
+  document.getElementById('concMedPurpose').value = '';
+  document.getElementById('concMedNotes').value = '';
+  document.getElementById('concomitantModal').classList.add('open');
+}
+
+function closeConcomitantMedModal() {
+  document.getElementById('concomitantModal').classList.remove('open');
+}
+
+async function handleSaveConcomitantMed(event) {
+  event.preventDefault();
+  const name = document.getElementById('concMedName').value;
+  const dosage = document.getElementById('concMedDosage').value;
+  const freq = document.getElementById('concMedFrequency').value;
+  const purpose = document.getElementById('concMedPurpose').value;
+  const notes = document.getElementById('concMedNotes').value;
+
+  try {
+    const res = await fetch('/api/medications/concomitant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, dosage, frequency: freq, purpose, notes })
+    });
+    if (res.ok) {
+      closeConcomitantMedModal();
+      loadConcomitantMedsTable();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function deleteConcomitantMed(id) {
+  if (!confirm('Delete concomitant medication record?')) return;
+  await fetch(`/api/medications/concomitant/${id}`, { method: 'DELETE' });
+  loadConcomitantMedsTable();
+}
+
+/* LABORATORY BLOOD WORK & METABOLIC BIOMARKERS */
+async function loadLabResultsTable() {
+  try {
+    const res = await fetch('/api/medications/labs/list');
+    const labs = await res.json();
+    const tbody = document.getElementById('labResultsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (labs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim);">No laboratory blood work entries logged.</td></tr>';
+      return;
+    }
+    labs.forEach(l => {
+      const hba1cStr = l.hba1c_pct !== null ? `${l.hba1c_pct}%` : '--';
+      const glucoseStr = l.fasting_glucose_mgdl !== null ? `${l.fasting_glucose_mgdl} mg/dL` : '--';
+      const insulinStr = l.fasting_insulin_uiuml !== null ? `${l.fasting_insulin_uiuml} µIU/mL` : '--';
+      const lipidsStr = `${l.total_cholesterol_mgdl || '-'}/${l.triglycerides_mgdl || '-'}/${l.hdl_mgdl || '-'}/${l.ldl_mgdl || '-'}`;
+      const liverStr = `${l.alt_ul || '-'}/${l.ast_ul || '-'}`;
+      const tshStr = l.tsh_uiuml !== null ? `${l.tsh_uiuml}` : '--';
+
+      tbody.innerHTML += `
+        <tr>
+          <td class="num">${l.timestamp}</td>
+          <td class="num" style="font-weight:600; color:var(--accent-cyan);">${hba1cStr}</td>
+          <td class="num">${glucoseStr}</td>
+          <td class="num">${insulinStr}</td>
+          <td class="num">${lipidsStr}</td>
+          <td class="num">${liverStr}</td>
+          <td class="num">${tshStr}</td>
+          <td><button class="btn btn-sm btn-danger" onclick="deleteLabResult(${l.id})">Del</button></td>
+        </tr>
+      `;
+    });
+  } catch (e) { console.error(e); }
+}
+
+function openNewLabResultModal() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('labDate').value = today;
+  document.getElementById('labHba1c').value = '';
+  document.getElementById('labGlucose').value = '';
+  document.getElementById('labInsulin').value = '';
+  document.getElementById('labCholesterol').value = '';
+  document.getElementById('labTriglycerides').value = '';
+  document.getElementById('labHdl').value = '';
+  document.getElementById('labLdl').value = '';
+  document.getElementById('labAlt').value = '';
+  document.getElementById('labAst').value = '';
+  document.getElementById('labTsh').value = '';
+  document.getElementById('labNotes').value = '';
+  document.getElementById('labResultModal').classList.add('open');
+}
+
+function closeLabResultModal() {
+  document.getElementById('labResultModal').classList.remove('open');
+}
+
+async function handleSaveLabResult(event) {
+  event.preventDefault();
+  const ts = document.getElementById('labDate').value;
+  const hba1c = parseFloat(document.getElementById('labHba1c').value) || null;
+  const glucose = parseFloat(document.getElementById('labGlucose').value) || null;
+  const insulin = parseFloat(document.getElementById('labInsulin').value) || null;
+  const chol = parseFloat(document.getElementById('labCholesterol').value) || null;
+  const trig = parseFloat(document.getElementById('labTriglycerides').value) || null;
+  const hdl = parseFloat(document.getElementById('labHdl').value) || null;
+  const ldl = parseFloat(document.getElementById('labLdl').value) || null;
+  const alt = parseFloat(document.getElementById('labAlt').value) || null;
+  const ast = parseFloat(document.getElementById('labAst').value) || null;
+  const tsh = parseFloat(document.getElementById('labTsh').value) || null;
+  const notes = document.getElementById('labNotes').value;
+
+  try {
+    const res = await fetch('/api/medications/labs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timestamp: ts,
+        hba1c_pct: hba1c,
+        fasting_glucose_mgdl: glucose,
+        fasting_insulin_uiuml: insulin,
+        total_cholesterol_mgdl: chol,
+        triglycerides_mgdl: trig,
+        hdl_mgdl: hdl,
+        ldl_mgdl: ldl,
+        alt_ul: alt,
+        ast_ul: ast,
+        tsh_uiuml: tsh,
+        notes: notes
+      })
+    });
+    if (res.ok) {
+      closeLabResultModal();
+      loadLabResultsTable();
+    }
+  } catch (e) { console.error(e); }
+}
+
+async function deleteLabResult(id) {
+  if (!confirm('Delete lab blood work entry?')) return;
+  await fetch(`/api/medications/labs/${id}`, { method: 'DELETE' });
+  loadLabResultsTable();
+}
+
+function switchSettingsSection(sectionKey) {
+  document.querySelectorAll('#settingsSubtabPills .pill-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('#tab-settings .stg-section').forEach(sec => sec.style.display = 'none');
+
+  if (sectionKey === 'devices') {
+    if (document.getElementById('btnStgDevices')) document.getElementById('btnStgDevices').classList.add('active');
+    if (document.getElementById('stgSecDevices')) document.getElementById('stgSecDevices').style.display = 'block';
+  } else if (sectionKey === 'profile') {
+    if (document.getElementById('btnStgProfile')) document.getElementById('btnStgProfile').classList.add('active');
+    if (document.getElementById('stgSecProfile')) document.getElementById('stgSecProfile').style.display = 'block';
+  } else if (sectionKey === 'security') {
+    if (document.getElementById('btnStgSecurity')) document.getElementById('btnStgSecurity').classList.add('active');
+    if (document.getElementById('stgSecSecurity')) document.getElementById('stgSecSecurity').style.display = 'block';
+  } else if (sectionKey === 'data') {
+    if (document.getElementById('btnStgData')) document.getElementById('btnStgData').classList.add('active');
+    if (document.getElementById('stgSecData')) document.getElementById('stgSecData').style.display = 'block';
+  } else if (sectionKey === 'preferences') {
+    if (document.getElementById('btnStgPreferences')) document.getElementById('btnStgPreferences').classList.add('active');
+    if (document.getElementById('stgSecPreferences')) document.getElementById('stgSecPreferences').style.display = 'block';
+  }
+}
+
+async function handleChangePasswordSubmit(event) {
+  event.preventDefault();
+  const curPw = document.getElementById('changeCurrentPassword').value;
+  const newPw = document.getElementById('changeNewPassword').value;
+  const confirmPw = document.getElementById('changeConfirmPassword').value;
+
+  if (newPw !== confirmPw) {
+    alert('New password and confirmation do not match.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: curPw, new_password: newPw })
+    });
+    if (res.ok) {
+      document.getElementById('changeCurrentPassword').value = '';
+      document.getElementById('changeNewPassword').value = '';
+      document.getElementById('changeConfirmPassword').value = '';
+      alert('Application password updated successfully!');
+    } else {
+      const err = await res.json();
+      alert('Failed to change password: ' + (err.detail || 'Error'));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function handleSavePreferences(event) {
+  event.preventDefault();
+  const symbol = document.getElementById('currencySymbolInput').value;
+  try {
+    const res = await fetch('/api/analytics/settings/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currency_symbol: symbol })
+    });
+    if (res.ok) {
+      alert('Preferences saved successfully');
+      loadFinancialStats();
+    }
+  } catch (e) {
+    console.error(e);
   }
 }
 
@@ -1148,17 +1533,23 @@ function updateTabLockBadges() {
 async function handleLoginSubmit(event) {
   event.preventDefault();
   const password = document.getElementById('authPasswordInput').value;
-  const res = await fetch('/api/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: password })
-  });
-  if (res.ok) {
-    toggleAuthModal();
-    await checkAuthStatus();
-    alert('Successfully authenticated! All tabs and features are now unlocked.');
-  } else {
-    alert('Invalid password');
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: password })
+    });
+    if (res.ok) {
+      toggleAuthModal();
+      await checkAuthStatus();
+      alert('Successfully authenticated! All tabs and features are now unlocked.');
+    } else {
+      const err = await res.json().catch(() => ({ detail: 'HTTP ' + res.status }));
+      alert('Login Error: ' + (err.detail || ('HTTP ' + res.status)));
+    }
+  } catch (e) {
+    console.error(e);
+    alert('Network Error during login: ' + e.message);
   }
 }
 

@@ -17,6 +17,19 @@ def verify_session_token(token: str) -> bool:
     except (BadSignature, SignatureExpired):
         return False
 
+def get_effective_password() -> str:
+    try:
+        from app.database import db_context
+        with db_context() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT value FROM user_settings WHERE key = 'app_password';")
+            row = cursor.fetchone()
+            if row and row["value"]:
+                return str(row["value"]).strip()
+    except Exception:
+        pass
+    return APP_PASSWORD
+
 def get_current_user(request: Request):
     # Check session cookie
     token = request.cookies.get("session")
@@ -27,7 +40,8 @@ def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         bearer_token = auth_header.split(" ")[1]
-        if bearer_token == APP_PASSWORD or verify_session_token(bearer_token):
+        eff_pw = get_effective_password()
+        if bearer_token == eff_pw or verify_session_token(bearer_token):
             return True
 
     raise HTTPException(

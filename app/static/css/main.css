@@ -462,6 +462,18 @@ tr:hover td {
   stroke-width: 2.5;
 }
 
+.body-part.recommended {
+  stroke: var(--accent-cyan);
+  stroke-width: 2.5;
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0% { stroke-opacity: 0.6; stroke-width: 2px; }
+  50% { stroke-opacity: 1; stroke-width: 3.5px; filter: drop-shadow(0 0 6px var(--accent-cyan)); }
+  100% { stroke-opacity: 0.6; stroke-width: 2px; }
+}
+
 .body-part.last-used {
   fill: rgba(245, 158, 11, 0.3);
   stroke: var(--accent-amber);

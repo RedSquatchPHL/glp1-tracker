@@ -235,3 +235,325 @@ def calculate_linear_projections(
             "in_90d_kg": prog_90d
         }
     }
+
+
+def get_drug_half_life(active_ingredient: Optional[str], medication_name: Optional[str] = "") -> float:
+    """
+    Returns elimination half-life in days based on drug active ingredient or name.
+    Default: 7.0 days for Semaglutide (Wegovy/Ozempic), 5.0 days for Tirzepatide (Mounjaro/Zepbound).
+    """
+    text = (str(active_ingredient or "") + " " + str(medication_name or "")).lower()
+    if "tirzepatide" in text or "mounjaro" in text or "zepbound" in text:
+        return 5.0
+    elif "semaglutide" in text or "wegovy" in text or "ozempic" in text:
+        return 7.0
+    elif "liraglutide" in text or "saxenda" in text or "victoza" in text:
+        return 0.55
+    elif "retatrutide" in text:
+        return 6.0
+    return 7.0
+
+
+def calculate_pharmacokinetics(injections: List[Dict[str, Any]], days_ahead: int = 14) -> Dict[str, Any]:
+    """
+    Mathematical modeling of active drug concentration in bloodstream based on historical injection dates,
+    doses (mg), and drug-specific elimination half-lives.
+    Formula: C(t) = Sum [ Dose_i * (0.5 ** ((t - t_i) / half_life)) ] for t >= t_i.
+    """
+    if not injections:
+        return {
+            "current_active_mg": 0.0,
+            "peak_active_mg": 0.0,
+            "half_life_days": 7.0,
+            "primary_medication": "None",
+            "steady_state_ratio": 0.0,
+            "series": []
+        }
+
+    parsed_injections = []
+    for inj in injections:
+        ts_str = inj.get("timestamp", "")
+        dose = inj.get("dosage_mg")
+        med_name = inj.get("medication_name", "GLP-1")
+        active_ing = inj.get("active_ingredient", "")
+        
+        if ts_str and dose is not None and float(dose) > 0:
+            try:
+                dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                hl = get_drug_half_life(active_ing, med_name)
+                parsed_injections.append({
+                    "dt": dt,
+                    "date_str": dt.strftime("%Y-%m-%d"),
+                    "dosage_mg": float(dose),
+                    "half_life_days": hl,
+                    "medication_name": med_name
+                })
+            except Exception:
+                continue
+
+    parsed_injections.sort(key=lambda x: x["dt"])
+
+    if not parsed_injections:
+        return {
+            "current_active_mg": 0.0,
+            "peak_active_mg": 0.0,
+            "half_life_days": 7.0,
+            "primary_medication": "None",
+            "steady_state_ratio": 0.0,
+            "series": []
+        }
+
+    # Generate daily time grid from first injection to today + days_ahead
+    start_dt = parsed_injections[0]["dt"].replace(hour=0, minute=0, second=0, microsecond=0)
+    today_dt = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    end_dt = max(parsed_injections[-1]["dt"], today_dt) + timedelta(days=days_ahead)
+
+    series = []
+    curr_dt = start_dt
+    
+    # Map doses to dates for quick overlay lookup
+    dose_by_date = {}
+    for inj in parsed_injections:
+        d_str = inj["date_str"]
+        dose_by_date[d_str] = dose_by_date.get(d_str, 0.0) + inj["dosage_mg"]
+
+    primary_hl = parsed_injections[-1]["half_life_days"]
+    primary_med = parsed_injections[-1]["medication_name"]
+    last_dose_mg = parsed_injections[-1]["dosage_mg"]
+
+    max_active = 0.0
+    current_active = 0.0
+
+    while curr_dt <= end_dt:
+        date_str = curr_dt.strftime("%Y-%m-%d")
+        total_active_mg = 0.0
+
+        for inj in parsed_injections:
+            if curr_dt >= inj["dt"].replace(hour=0, minute=0, second=0, microsecond=0):
+                days_elapsed = (curr_dt - inj["dt"]).total_seconds() / 86400.0
+                if days_elapsed >= 0:
+                    hl = inj["half_life_days"]
+                    remaining_mg = inj["dosage_mg"] * (0.5 ** (days_elapsed / hl))
+                    total_active_mg += remaining_mg
+
+        total_active_mg = round(total_active_mg, 3)
+        if total_active_mg > max_active:
+            max_active = total_active_mg
+
+        if date_str == today_dt.strftime("%Y-%m-%d"):
+            current_active = total_active_mg
+
+        series.append({
+            "date": date_str,
+            "active_mg": total_active_mg,
+            "dose_event_mg": dose_by_date.get(date_str)
+        })
+
+        curr_dt += timedelta(days=1)
+
+    steady_state_ratio = round(current_active / last_dose_mg, 2) if last_dose_mg > 0 else 0.0
+
+    return {
+        "current_active_mg": round(current_active, 2),
+        "peak_active_mg": round(max_active, 2),
+        "half_life_days": primary_hl,
+        "primary_medication": primary_med,
+        "last_dose_mg": last_dose_mg,
+        "steady_state_ratio": steady_state_ratio,
+        "series": series
+    }
+
+
+def calculate_body_ratios(
+    waist_cm: Optional[float], 
+    hip_cm: Optional[float], 
+    height_cm: Optional[float] = 175.0, 
+    gender: str = "unspecified"
+) -> Dict[str, Any]:
+    """
+    Computes Waist-to-Height Ratio (WHtR) & Waist-to-Hip Ratio (WHR) alongside cardiometabolic risk scores.
+    """
+    whtr = None
+    whtr_status = "N/A"
+    whr = None
+    whr_status = "N/A"
+    overall_risk = "Low Risk"
+
+    if waist_cm and height_cm and height_cm > 0:
+        whtr = round(waist_cm / height_cm, 3)
+        if whtr < 0.40:
+            whtr_status = "Underweight / Low Risk"
+        elif 0.40 <= whtr <= 0.49:
+            whtr_status = "Healthy / Normal Risk"
+        elif 0.50 <= whtr <= 0.59:
+            whtr_status = "Increased Cardiometabolic Risk"
+            overall_risk = "Increased Risk"
+        else:
+            whtr_status = "High Cardiometabolic Risk"
+            overall_risk = "High Risk"
+
+    if waist_cm and hip_cm and hip_cm > 0:
+        whr = round(waist_cm / hip_cm, 3)
+        g_clean = str(gender).lower()
+        if g_clean == "male":
+            if whr < 0.90:
+                whr_status = "Low Risk"
+            elif 0.90 <= whr <= 0.99:
+                whr_status = "Moderate Risk"
+                if overall_risk != "High Risk": overall_risk = "Moderate Risk"
+            else:
+                whr_status = "High Risk"
+                overall_risk = "High Risk"
+        elif g_clean == "female":
+            if whr < 0.80:
+                whr_status = "Low Risk"
+            elif 0.80 <= whr <= 0.89:
+                whr_status = "Moderate Risk"
+                if overall_risk != "High Risk": overall_risk = "Moderate Risk"
+            else:
+                whr_status = "High Risk"
+                overall_risk = "High Risk"
+        else:
+            if whr < 0.85:
+                whr_status = "Low Risk"
+            elif 0.85 <= whr <= 0.95:
+                whr_status = "Moderate Risk"
+                if overall_risk != "High Risk": overall_risk = "Moderate Risk"
+            else:
+                whr_status = "High Risk"
+                overall_risk = "High Risk"
+
+    return {
+        "waist_cm": waist_cm,
+        "hip_cm": hip_cm,
+        "height_cm": height_cm,
+        "whtr": whtr,
+        "whtr_status": whtr_status,
+        "whr": whr,
+        "whr_status": whr_status,
+        "cardiometabolic_risk_score": overall_risk
+    }
+
+
+def detect_weight_plateau(
+    measurements: List[Dict[str, Any]], 
+    threshold_days: int = 14, 
+    window_kg: float = 0.5
+) -> Dict[str, Any]:
+    """
+    Automated Plateau Detection & Breakdown Engine:
+    Identifies weight plateaus (weight fluctuating within +/-0.5 kg window over a 14-21 day threshold).
+    Displays diagnostic insights distinguishing fat loss vs. muscle gain or fluid retention (ICW/ECW shifts).
+    """
+    if not measurements:
+        return {
+            "is_plateau": False,
+            "duration_days": 0,
+            "weight_range_kg": 0.0,
+            "diagnostic_type": "No Data",
+            "diagnostic_insight": "Insufficient measurement history to evaluate weight plateaus.",
+            "recommendation": "Continue logging weight daily to enable plateau detection."
+        }
+
+    # Extract clean points with dates and measurements
+    valid_points = []
+    for m in measurements:
+        ts_str = m.get("timestamp", "")
+        data = m.get("data", {})
+        w = data.get("weight_kg")
+        fat_pct = data.get("body_fat_pct")
+        muscle_kg = data.get("muscle_mass_kg")
+        ecw = data.get("ecw_l") or data.get("body_water_pct")
+
+        if ts_str and w is not None:
+            try:
+                dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00")).replace(tzinfo=None)
+                valid_points.append({
+                    "dt": dt,
+                    "weight_kg": float(w),
+                    "fat_pct": float(fat_pct) if fat_pct is not None else None,
+                    "muscle_kg": float(muscle_kg) if muscle_kg is not None else None,
+                    "ecw": float(ecw) if ecw is not None else None
+                })
+            except Exception:
+                continue
+
+    valid_points.sort(key=lambda x: x["dt"])
+
+    if len(valid_points) < 3:
+        return {
+            "is_plateau": False,
+            "duration_days": 0,
+            "weight_range_kg": 0.0,
+            "diagnostic_type": "Insufficient Data",
+            "diagnostic_insight": "At least 3 measurement entries required for automated plateau detection.",
+            "recommendation": "Keep recording weight readings to track steady-state dynamics."
+        }
+
+    latest_dt = valid_points[-1]["dt"]
+    cutoff_dt = latest_dt - timedelta(days=21)
+    
+    recent_points = [p for p in valid_points if p["dt"] >= cutoff_dt]
+    if len(recent_points) < 3:
+        recent_points = valid_points[-5:] # fallback to recent 5
+
+    weights = [p["weight_kg"] for p in recent_points]
+    min_w = min(weights)
+    max_w = max(weights)
+    weight_range = round(max_w - min_w, 2)
+    mean_w = round(sum(weights) / len(weights), 2)
+    
+    first_pt = recent_points[0]
+    last_pt = recent_points[-1]
+    span_days = int((last_pt["dt"] - first_pt["dt"]).total_seconds() / 86400.0)
+
+    # Check if weight fluctuates within +/- 0.5 kg window (total spread <= 1.0 kg) over >= 14 days
+    is_plateau = (weight_range <= (window_kg * 2.0)) and (span_days >= threshold_days)
+
+    if not is_plateau:
+        return {
+            "is_plateau": False,
+            "duration_days": span_days,
+            "weight_range_kg": weight_range,
+            "diagnostic_type": "Weight Loss Active",
+            "diagnostic_insight": f"Weight loss trend active. Weight spread over the past {span_days} days is {weight_range} kg.",
+            "recommendation": "Your weight is progressing outside a plateau window."
+        }
+
+    # Diagnostic Breakdown
+    fat_diff = (last_pt["fat_pct"] - first_pt["fat_pct"]) if (last_pt["fat_pct"] is not None and first_pt["fat_pct"] is not None) else None
+    muscle_diff = (last_pt["muscle_kg"] - first_pt["muscle_kg"]) if (last_pt["muscle_kg"] is not None and first_pt["muscle_kg"] is not None) else None
+    ecw_diff = (last_pt["ecw"] - first_pt["ecw"]) if (last_pt["ecw"] is not None and first_pt["ecw"] is not None) else None
+
+    diagnostic_type = "Metabolic Plateau"
+    insight = (
+        f"Weight has remained flat within a ±{round(weight_range/2, 2)} kg window for {span_days} days. "
+        f"Scale weight is stabilized around {mean_w} kg."
+    )
+    recommendation = "Consider reviewing caloric intake, strength training stimulus, or discussing dose progression with your provider."
+
+    if fat_diff is not None and fat_diff <= -0.3:
+        diagnostic_type = "Body Recomposition (Fat Loss Active)"
+        insight = (
+            f"Weight is flat ({weight_range} kg spread over {span_days} days), BUT body fat percentage dropped by "
+            f"{abs(round(fat_diff, 1))}%. Fat loss is actively continuing while muscle gain or glycogen/water shifts mask scale weight loss."
+        )
+        recommendation = "Recomposition detected! Pay attention to body measurements and waist metrics rather than scale weight."
+    elif ecw_diff is not None and ecw_diff > 0.2:
+        diagnostic_type = "Fluid Retention / Water Shift"
+        insight = (
+            f"Weight is flat over {span_days} days, with extracellular water / fluid increase detected (+{round(ecw_diff, 1)} L/%). "
+            f"Transient fluid retention is masking active adipose fat reduction."
+        )
+        recommendation = "Maintain proper hydration and sodium balance. Fluid shifts usually resolve over 3-7 days."
+
+    return {
+        "is_plateau": True,
+        "duration_days": span_days,
+        "weight_range_kg": weight_range,
+        "mean_weight_kg": mean_w,
+        "diagnostic_type": diagnostic_type,
+        "diagnostic_insight": insight,
+        "recommendation": recommendation
+    }
+

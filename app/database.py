@@ -7,7 +7,6 @@ from app.config import DATABASE_FILE
 def get_db():
     conn = sqlite3.connect(DATABASE_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    # Enable foreign key constraints
     conn.execute("PRAGMA foreign_keys = ON;")
     try:
         yield conn
@@ -169,6 +168,41 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_photos_timestamp ON progress_photos(timestamp);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_progress_photos_angle ON progress_photos(angle);")
 
+        # 11. Concomitant / General Non-GLP1 Medications & Supplements Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS concomitant_medications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            dosage TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            purpose TEXT,
+            notes TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        # 12. Laboratory Blood Work & Biomarkers Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS lab_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            hba1c_pct REAL,
+            fasting_glucose_mgdl REAL,
+            fasting_insulin_uiuml REAL,
+            total_cholesterol_mgdl REAL,
+            triglycerides_mgdl REAL,
+            hdl_mgdl REAL,
+            ldl_mgdl REAL,
+            alt_ul REAL,
+            ast_ul REAL,
+            tsh_uiuml REAL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_lab_results_timestamp ON lab_results(timestamp);")
+
         # Ensure photos directory exists
         from app.config import PHOTOS_DIR
         PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
@@ -190,6 +224,11 @@ def init_db():
             ("phase_angle", "Phase Angle", "°", "body_comp", 120),
             ("icw_l", "Intracellular Water", "L", "body_comp", 130),
             ("ecw_l", "Extracellular Water", "L", "body_comp", 140),
+            
+            # Anthropometric & Body Circumference
+            ("waist_cm", "Waist Circumference", "cm", "body_comp", 142),
+            ("hip_cm", "Hip Circumference", "cm", "body_comp", 144),
+            ("height_cm", "Height", "cm", "body_comp", 146),
             
             # Vital Signs & Cardiovascular
             ("bp_systolic", "Systolic Blood Pressure", "mmHg", "vital_signs", 150),
@@ -231,7 +270,7 @@ def init_db():
             manual_id = 3
 
             # Assign basic metrics to Home Scale
-            basic_keys = ["weight_kg", "body_fat_pct", "bmi", "skeletal_muscle_pct", "muscle_mass_kg", "bmr_kcal", "body_water_pct", "visceral_fat"]
+            basic_keys = ["weight_kg", "body_fat_pct", "bmi", "skeletal_muscle_pct", "muscle_mass_kg", "bmr_kcal", "body_water_pct", "visceral_fat", "waist_cm", "hip_cm"]
             for k in basic_keys:
                 cursor.execute("INSERT OR IGNORE INTO scale_metrics (scale_id, metric_key) VALUES (?, ?);", (home_id, k))
 
@@ -241,6 +280,10 @@ def init_db():
 
             # Assign weight only to Manual Scale
             cursor.execute("INSERT OR IGNORE INTO scale_metrics (scale_id, metric_key) VALUES (?, 'weight_kg');", (manual_id,))
+
+        # Assign waist_cm and hip_cm to home scale if home scale exists
+        cursor.execute("INSERT OR IGNORE INTO scale_metrics (scale_id, metric_key) VALUES (1, 'waist_cm');")
+        cursor.execute("INSERT OR IGNORE INTO scale_metrics (scale_id, metric_key) VALUES (1, 'hip_cm');")
 
         # --- SEED DEFAULT MEDICATIONS IF NONE EXIST ---
         cursor.execute("SELECT COUNT(*) FROM medications;")
@@ -258,6 +301,13 @@ def init_db():
                 """, (name, active_ing, steps, form, notes))
 
         # --- SEED USER TARGET WEIGHT SETTING IF NOT PRESENT ---
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_name', 'Patient');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_dob', '');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('physician_name', '');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('medical_conditions', '');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('target_weight_kg', '75.0');")
-        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('currency_symbol', '€');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_height_cm', '175.0');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_gender', 'unspecified');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('app_password', 'admin');")
         cursor.execute("UPDATE user_settings SET value = '€' WHERE key = 'currency_symbol';")
+

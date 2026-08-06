@@ -21,6 +21,9 @@
       <h1>GLP-1 Journey & Body Composition Tracker</h1>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
+      <a href="/clinical-summary" target="_blank" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+        🏥 <span>Doctor Summary PDF</span>
+      </a>
       <button class="btn btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
         <span id="themeToggleIcon">☀️</span> <span id="themeToggleLabel">Light Mode</span>
       </button>
@@ -57,11 +60,7 @@
     </a>
     <a class="tab-btn" href="#settings" data-tab="tab-settings" onclick="switchTab('tab-settings')">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Scale & Device Settings
-    </a>
-    <a class="tab-btn" href="#export" data-tab="tab-export" onclick="switchTab('tab-export')">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-      Export & Import
+      Settings & Data Hub
     </a>
   </nav>
 
@@ -70,6 +69,28 @@
 
     <!-- TAB 1: DASHBOARD & ANALYTICS -->
     <section id="tab-dashboard" class="tab-content active">
+      <!-- Smart Injection Reminder Proactive Alert Banner -->
+      <div id="smartReminderBanner" class="alert-banner info" style="display: none; background: rgba(2, 132, 199, 0.15); border: 1px solid var(--accent-blue); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" fill="none" stroke="var(--accent-blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M19.5 4.5l-15 15M14 3l7 7M9.5 7.5L5 12M16.5 14.5L12 19"/></svg>
+          <div>
+            <strong style="color: var(--accent-cyan);" id="smartReminderTitle">SMART INJECTION REMINDER & SITE ROTATION GUIDE:</strong>
+            <span id="smartReminderText" style="margin-left: 6px;">Next dose calculation...</span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="switchTab('tab-injections')" style="white-space: nowrap;">Log Injection Now</button>
+      </div>
+
+      <!-- Automated Plateau Detection & Diagnostic Insights Banner -->
+      <div id="plateauWarningBanner" class="alert-banner warning" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid var(--accent-amber); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px;">
+        <svg width="20" height="20" fill="none" stroke="var(--accent-amber)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong style="color: var(--accent-amber);" id="plateauTypeTitle">AUTOMATED PLATEAU DETECTED:</strong>
+          <span id="plateauInsightText">Weight fluctuating within ±0.5 kg over 14+ days.</span>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="plateauRecommendationText"></div>
+        </div>
+      </div>
+
       <!-- Lean Mass Protection Warning Banner -->
       <div id="leanMassWarningBanner" class="alert-banner danger" style="display: none;">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -86,6 +107,16 @@
           <div class="kpi-value" id="kpiCurrentWeight">-- kg</div>
           <div class="kpi-sub" id="kpiTotalLost">Total Lost: -- kg</div>
           <div class="kpi-sub" id="kpiLastWeightDate" style="color: var(--accent-blue); margin-top: 2px;">Last entry: --</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Drug Level</div>
+          <div class="kpi-value" id="kpiActiveDrugVal" style="color: var(--accent-cyan);">-- mg</div>
+          <div class="kpi-sub" id="kpiActiveDrugSub">Bloodstream kinetics (~7d half-life)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cardiometabolic Risk (WHtR/WHR)</div>
+          <div class="kpi-value" id="kpiCardioRiskVal" style="font-size: 16px;">--</div>
+          <div class="kpi-sub" id="kpiCardioRiskSub">WHtR: -- | WHR: --</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Target Weight Goal</div>
@@ -630,120 +661,318 @@
       </div>
     </section>
 
-    <!-- TAB 6: SCALE & DEVICE SETTINGS -->
+    <!-- TAB 6: MAIN SETTINGS & DATA MANAGEMENT HUB -->
     <section id="tab-settings" class="tab-content">
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Scale & Device Profiles (Master Data)
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openNewScaleModal()">+ Create Scale Profile</button>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Scale Name</th>
-                <th>Description</th>
-                <th>Assigned Metrics</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="scalesTableBody">
-              <!-- Rendered -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Metric Definitions Manager Panel -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-            Metric Definitions & Custom Input Fields Manager
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="openNewMetricModal()">+ Create New Metric Field</button>
-        </div>
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-          Add, edit, or deactivate measurement metric fields (e.g. Systolic/Diastolic Blood Pressure, Resting Heart Rate, Blood Glucose, Body Fat %, Muscle Mass).
-        </p>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Label</th>
-                <th>Unit</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="metricsTableBody">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- User Target Weight Setting Panel -->
-      <div class="panel">
-        <div class="panel-header">
-          <div class="panel-title">Target Weight & Goal Settings</div>
-        </div>
-        <div class="form-group" style="max-width: 300px;">
-          <label for="targetWeightInput">Target Goal Weight (kg):</label>
-          <div style="display: flex; gap: 8px;">
-            <input type="number" step="0.1" id="targetWeightInput" value="75.0">
-            <button type="button" class="btn btn-primary" onclick="saveTargetWeight()">Save</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 7: EXPORT & IMPORT -->
-    <section id="tab-export" class="tab-content">
-      <div class="grid-2col">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Export Raw Data & Backups
-            </div>
-          </div>
-          <p style="color: var(--text-muted); margin-bottom: 16px;">
-            Export your entire database (all scales, metrics, raw measurement entries, medication logs, purchases, side effects, and settings) for external analysis or offline backups.
-          </p>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="/api/export/json" class="btn btn-primary" download>
-              Download Complete JSON Database Backup
-            </a>
-            <a href="/api/export/csv" class="btn" download>
-              Download Measurements CSV Spreadsheet
-            </a>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-              Restore or Import Data
-            </div>
-          </div>
-          <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import JSON Backup File:</label>
-            <input type="file" id="jsonImportFile" accept=".json" style="margin-bottom: 8px;">
-            <button type="button" class="btn btn-primary btn-sm" onclick="handleImportJson()">Restore JSON Backup</button>
-          </div>
-          <hr style="border-color: var(--border-subtle); margin: 16px 0;">
+      <!-- Section Title & Sub-navigation bar -->
+      <div class="panel" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
           <div>
-            <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import CSV Measurements File:</label>
-            <input type="file" id="csvImportFile" accept=".csv" style="margin-bottom: 8px;">
-            <button type="button" class="btn btn-sm" onclick="handleImportCsv()">Import CSV Entries</button>
+            <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" fill="none" stroke="var(--accent-cyan)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings & Application Preferences
+            </h2>
+            <p style="font-size: 12px; color: var(--text-muted);">
+              Manage scale device profiles, custom metric fields, user profile goals, password security, backups, and data exports.
+            </p>
           </div>
+
+          <!-- Sub-tab Selector Pills -->
+          <div class="pill-filters" id="settingsSubtabPills">
+            <button class="pill-btn active" id="btnStgDevices" onclick="switchSettingsSection('devices')">📏 Scales & Devices</button>
+            <button class="pill-btn" id="btnStgProfile" onclick="switchSettingsSection('profile')">👤 Profile & Goals</button>
+            <button class="pill-btn" id="btnStgSecurity" onclick="switchSettingsSection('security')">🔑 Password & Security</button>
+            <button class="pill-btn" id="btnStgData" onclick="switchSettingsSection('data')">💾 Data Export & Backups</button>
+            <button class="pill-btn" id="btnStgPreferences" onclick="switchSettingsSection('preferences')">⚙️ App Preferences</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: SCALES & METRIC DEFINITIONS (DEVICES) -->
+      <div id="stgSecDevices" class="stg-section">
+        <!-- Scale Profiles Table Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Scale & Device Profiles (Master Data)
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openNewScaleModal()">+ Create Scale Profile</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Scale Name</th>
+                  <th>Description</th>
+                  <th>Assigned Metrics</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="scalesTableBody">
+                <!-- Rendered -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Metric Definitions Manager Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+              Metric Definitions & Custom Input Fields Manager
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openNewMetricModal()">+ Create New Metric Field</button>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Add, edit, or deactivate measurement metric fields (e.g. Systolic/Diastolic Blood Pressure, Resting Heart Rate, Blood Glucose, Body Fat %, Muscle Mass).
+          </p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Label</th>
+                  <th>Unit</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="metricsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: USER PROFILE & GOALS -->
+      <div id="stgSecProfile" class="stg-section" style="display: none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Patient Clinical Demographics & Goal Settings
+            </div>
+          </div>
+          <form onsubmit="saveUserProfileSettings(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="userNameInput">Patient Full Name:</label>
+                <input type="text" id="userNameInput" placeholder="e.g. Jane Doe">
+              </div>
+              <div class="form-group">
+                <label for="userDobInput">Date of Birth:</label>
+                <input type="date" id="userDobInput">
+              </div>
+              <div class="form-group">
+                <label for="userPhysicianInput">Prescribing Doctor / Practice:</label>
+                <input type="text" id="userPhysicianInput" placeholder="e.g. Dr. Sarah Jenkins, MD - Endocrinology">
+              </div>
+              <div class="form-group">
+                <label for="userConditionsInput">Primary Medical Diagnosis / Conditions:</label>
+                <input type="text" id="userConditionsInput" placeholder="e.g. Obesity (BMI 34), Type 2 Diabetes, Insulin Resistance">
+              </div>
+              <div class="form-group">
+                <label for="targetWeightInput">Target Goal Weight (kg):</label>
+                <input type="number" step="0.1" id="targetWeightInput" value="75.0" required>
+              </div>
+              <div class="form-group">
+                <label for="userHeightInput">Height (cm) — Used for BMI & WHtR:</label>
+                <input type="number" step="0.5" id="userHeightInput" value="175.0" placeholder="e.g. 175.0" required>
+              </div>
+              <div class="form-group">
+                <label for="userGenderSelect">Biological Sex / Gender (for WHR Risk Thresholds):</label>
+                <select id="userGenderSelect">
+                  <option value="unspecified">Unspecified / General</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Save Profile Settings</button>
+          </form>
+        </div>
+
+        <!-- Concomitant Non-GLP1 Medications Panel -->
+        <div class="panel" style="margin-top: 20px;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Concomitant Daily Medications & Supplements (Non-GLP-1)
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openNewConcomitantMedModal()">+ Add Medication / Supplement</button>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Log active concomitant prescription drugs or supplements (e.g. Metformin, Levothyroxine, Blood Pressure meds, Multivitamins, Electrolytes). These appear on your Doctor Summary PDF.
+          </p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Medication Name</th>
+                  <th>Dosage</th>
+                  <th>Frequency</th>
+                  <th>Indication / Purpose</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="concomitantMedsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Laboratory Blood Work Panel -->
+        <div class="panel" style="margin-top: 20px;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Laboratory Blood Work & Metabolic Biomarkers Log
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openNewLabResultModal()">+ Log Lab Test Results</button>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Track metabolic blood work over time (HbA1c, Fasting Glucose, Fasting Insulin, Lipid Panel, Liver ALT/AST, TSH) to correlate medication progress with lab improvements.
+          </p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>HbA1c (%)</th>
+                  <th>Fasting Glucose</th>
+                  <th>Insulin</th>
+                  <th>Lipids (Chol/Trig/HDL/LDL)</th>
+                  <th>ALT / AST</th>
+                  <th>TSH</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="labResultsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: SECURITY & PASSWORD CHANGE -->
+      <div id="stgSecSecurity" class="stg-section" style="display: none;">
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Change Application Password
+              </div>
+            </div>
+            <form onsubmit="handleChangePasswordSubmit(event)">
+              <div class="form-group">
+                <label for="changeCurrentPassword">Current Password:</label>
+                <input type="password" id="changeCurrentPassword" placeholder="Enter current password" required>
+              </div>
+              <div class="form-group">
+                <label for="changeNewPassword">New Password:</label>
+                <input type="password" id="changeNewPassword" placeholder="Enter new password (min 3 chars)" required>
+              </div>
+              <div class="form-group">
+                <label for="changeConfirmPassword">Confirm New Password:</label>
+                <input type="password" id="changeConfirmPassword" placeholder="Re-enter new password" required>
+              </div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Update Password</button>
+            </form>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Authentication & Session Status
+              </div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+              Session cookies provide protected read/write access to administrative tabs and settings.
+            </p>
+            <div style="background: var(--bg-surface-elevated); padding: 12px; border-radius: 6px; border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Session Status:</span>
+                <span id="stgAuthBadge"><span style="color: var(--accent-emerald);">● Authenticated Active</span></span>
+              </div>
+            </div>
+            <button type="button" class="btn btn-danger" onclick="handleLogout()">Logout Current Session</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: DATA EXPORT, RESTORE & CLINICAL PDF -->
+      <div id="stgSecData" class="stg-section" style="display: none;">
+        <div class="grid-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Export Raw Data, Backups & Clinical Reports
+              </div>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 16px;">
+              Export your complete database (scales, metrics, measurement logs, medication injections, purchases, side effects, settings, progress photos) for backups or clinical review.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <a href="/clinical-summary" target="_blank" class="btn btn-primary" style="background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border: none; text-align: center; text-decoration: none;">
+                🏥 Generate 1-Click Clinical / Doctor Summary PDF
+              </a>
+              <a href="/api/export/json" class="btn" download>
+                Download Complete JSON Database Backup
+              </a>
+              <a href="/api/export/csv" class="btn" download>
+                Download Measurements CSV Spreadsheet
+              </a>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Restore Database or Import Data
+              </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import JSON Backup File:</label>
+              <input type="file" id="jsonImportFile" accept=".json" style="margin-bottom: 8px;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="handleImportJson()">Restore JSON Backup</button>
+            </div>
+            <hr style="border-color: var(--border-subtle); margin: 16px 0;">
+            <div>
+              <label style="font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Import CSV Measurements File:</label>
+              <input type="file" id="csvImportFile" accept=".csv" style="margin-bottom: 8px;">
+              <button type="button" class="btn btn-sm" onclick="handleImportCsv()">Import CSV Entries</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: APP PREFERENCES -->
+      <div id="stgSecPreferences" class="stg-section" style="display: none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              Application & Display Preferences
+            </div>
+          </div>
+          <form onsubmit="handleSavePreferences(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="currencySymbolInput">Currency Symbol ($ / € / £ / ¥):</label>
+                <input type="text" id="currencySymbolInput" value="€" placeholder="e.g. € or $" style="max-width: 140px;" required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 12px;">Save Application Preferences</button>
+          </form>
         </div>
       </div>
     </section>
@@ -1054,6 +1283,102 @@
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
           <button type="button" class="btn" onclick="closeMedicationModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Medication</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Concomitant Medication / Supplement Create -->
+  <div id="concomitantModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px;">Log Concomitant Medication / Supplement</h3>
+      <form id="concomitantModalForm" onsubmit="handleSaveConcomitantMed(event)">
+        <div class="form-group">
+          <label for="concMedName">Medication or Supplement Name:</label>
+          <input type="text" id="concMedName" placeholder="e.g. Metformin ER, Levothyroxine, Multivitamin" required>
+        </div>
+        <div class="form-group">
+          <label for="concMedDosage">Dosage Strength:</label>
+          <input type="text" id="concMedDosage" placeholder="e.g. 500 mg, 75 mcg, 1 tablet" required>
+        </div>
+        <div class="form-group">
+          <label for="concMedFrequency">Frequency:</label>
+          <input type="text" id="concMedFrequency" placeholder="e.g. Daily (Morning), 2x Daily with meals, Weekly" required>
+        </div>
+        <div class="form-group">
+          <label for="concMedPurpose">Indication / Purpose (Optional):</label>
+          <input type="text" id="concMedPurpose" placeholder="e.g. Insulin sensitivity, Thyroid health, Muscle preservation">
+        </div>
+        <div class="form-group">
+          <label for="concMedNotes">Notes (Optional):</label>
+          <input type="text" id="concMedNotes" placeholder="e.g. Prescribed by Dr. Jenkins">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closeConcomitantMedModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Concomitant Med</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Laboratory Blood Work Result Create -->
+  <div id="labResultModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 600px;">
+      <h3 style="margin-bottom: 16px;">Log Laboratory Blood Work & Biomarkers</h3>
+      <form id="labResultModalForm" onsubmit="handleSaveLabResult(event)">
+        <div class="form-group">
+          <label for="labDate">Test Date:</label>
+          <input type="date" id="labDate" required>
+        </div>
+        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label for="labHba1c">HbA1c (%):</label>
+            <input type="number" step="0.1" id="labHba1c" placeholder="e.g. 5.6">
+          </div>
+          <div class="form-group">
+            <label for="labGlucose">Fasting Glucose (mg/dL):</label>
+            <input type="number" step="1" id="labGlucose" placeholder="e.g. 95">
+          </div>
+          <div class="form-group">
+            <label for="labInsulin">Fasting Insulin (µIU/mL):</label>
+            <input type="number" step="0.1" id="labInsulin" placeholder="e.g. 8.2">
+          </div>
+          <div class="form-group">
+            <label for="labCholesterol">Total Cholesterol (mg/dL):</label>
+            <input type="number" step="1" id="labCholesterol" placeholder="e.g. 185">
+          </div>
+          <div class="form-group">
+            <label for="labTriglycerides">Triglycerides (mg/dL):</label>
+            <input type="number" step="1" id="labTriglycerides" placeholder="e.g. 110">
+          </div>
+          <div class="form-group">
+            <label for="labHdl">HDL Cholesterol (mg/dL):</label>
+            <input type="number" step="1" id="labHdl" placeholder="e.g. 52">
+          </div>
+          <div class="form-group">
+            <label for="labLdl">LDL Cholesterol (mg/dL):</label>
+            <input type="number" step="1" id="labLdl" placeholder="e.g. 110">
+          </div>
+          <div class="form-group">
+            <label for="labAlt">ALT Liver Enzyme (U/L):</label>
+            <input type="number" step="1" id="labAlt" placeholder="e.g. 22">
+          </div>
+          <div class="form-group">
+            <label for="labAst">AST Liver Enzyme (U/L):</label>
+            <input type="number" step="1" id="labAst" placeholder="e.g. 19">
+          </div>
+          <div class="form-group">
+            <label for="labTsh">TSH Thyroid (µIU/mL):</label>
+            <input type="number" step="0.01" id="labTsh" placeholder="e.g. 1.85">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 8px;">
+          <label for="labNotes">Notes / Lab Facility:</label>
+          <input type="text" id="labNotes" placeholder="e.g. LabCorp routine panel">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn" onclick="closeLabResultModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Lab Entry</button>
         </div>
       </form>
     </div>

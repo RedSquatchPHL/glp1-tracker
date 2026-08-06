@@ -84,3 +84,81 @@ def delete_medication(med_id: int, db = Depends(get_db), user = Depends(get_curr
     cursor.execute("UPDATE medications SET is_active = 0 WHERE id = ?;", (med_id,))
     db.commit()
     return {"message": f"Medication {med_id} soft-deleted"}
+
+# --- CONCOMITANT MEDICATIONS (NON-GLP1 MEDS & SUPPLEMENTS) ---
+
+class ConcomitantMedCreate(BaseModel):
+    name: str
+    dosage: str
+    frequency: str
+    purpose: Optional[str] = ""
+    notes: Optional[str] = ""
+
+@router.get("/concomitant/list")
+def list_concomitant_medications(db = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM concomitant_medications WHERE is_active = 1 ORDER BY created_at DESC;")
+    return [dict(r) for r in cursor.fetchall()]
+
+@router.post("/concomitant", status_code=201)
+def create_concomitant_medication(payload: ConcomitantMedCreate, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    cursor.execute("""
+    INSERT INTO concomitant_medications (name, dosage, frequency, purpose, notes)
+    VALUES (?, ?, ?, ?, ?);
+    """, (payload.name, payload.dosage, payload.frequency, payload.purpose or "", payload.notes or ""))
+    db.commit()
+    return {"message": "General medication logged successfully"}
+
+@router.delete("/concomitant/{med_id}")
+def delete_concomitant_medication(med_id: int, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    cursor.execute("UPDATE concomitant_medications SET is_active = 0 WHERE id = ?;", (med_id,))
+    db.commit()
+    return {"message": "General medication deleted"}
+
+# --- LABORATORY BLOOD WORK & BIOMARKERS ---
+
+class LabResultCreate(BaseModel):
+    timestamp: str
+    hba1c_pct: Optional[float] = None
+    fasting_glucose_mgdl: Optional[float] = None
+    fasting_insulin_uiuml: Optional[float] = None
+    total_cholesterol_mgdl: Optional[float] = None
+    triglycerides_mgdl: Optional[float] = None
+    hdl_mgdl: Optional[float] = None
+    ldl_mgdl: Optional[float] = None
+    alt_ul: Optional[float] = None
+    ast_ul: Optional[float] = None
+    tsh_uiuml: Optional[float] = None
+    notes: Optional[str] = ""
+
+@router.get("/labs/list")
+def list_lab_results(db = Depends(get_db)):
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM lab_results ORDER BY timestamp DESC;")
+    return [dict(r) for r in cursor.fetchall()]
+
+@router.post("/labs", status_code=201)
+def create_lab_result(payload: LabResultCreate, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    cursor.execute("""
+    INSERT INTO lab_results (
+        timestamp, hba1c_pct, fasting_glucose_mgdl, fasting_insulin_uiuml,
+        total_cholesterol_mgdl, triglycerides_mgdl, hdl_mgdl, ldl_mgdl,
+        alt_ul, ast_ul, tsh_uiuml, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    """, (
+        payload.timestamp, payload.hba1c_pct, payload.fasting_glucose_mgdl, payload.fasting_insulin_uiuml,
+        payload.total_cholesterol_mgdl, payload.triglycerides_mgdl, payload.hdl_mgdl, payload.ldl_mgdl,
+        payload.alt_ul, payload.ast_ul, payload.tsh_uiuml, payload.notes or ""
+    ))
+    db.commit()
+    return {"message": "Lab blood work entry recorded successfully"}
+
+@router.delete("/labs/{lab_id}")
+def delete_lab_result(lab_id: int, db = Depends(get_db), user = Depends(get_current_user)):
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM lab_results WHERE id = ?;", (lab_id,))
+    db.commit()
+    return {"message": "Lab result deleted"}
