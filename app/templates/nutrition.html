@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nutrition | GLP-1 Tracker</title>
+  <meta name="description" content="Protein and hydration tracking for the GLP-1 journey tracker.">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-badge">GLP-1 CORE v1.0</span>
+      <h1>Nutrition — Protein &amp; Hydration</h1>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <a href="/" class="btn btn-sm" style="text-decoration: none;">&larr; Back to Dashboard</a>
+      <button class="btn btn-sm" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
+        <span id="themeToggleIcon">☀️</span> <span id="themeToggleLabel">Light Mode</span>
+      </button>
+      <span id="authStatusBadge" style="font-size: 11px; color: var(--text-dim);" class="num">Port: {{ port }}</span>
+      <button class="btn btn-sm" id="authBtn" onclick="toggleAuthModal()">Login</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Today's summary -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Protein Today</div>
+        <div class="kpi-value" id="kpiProteinToday">0 g</div>
+        <div class="kpi-sub" id="kpiProteinEntries">0 entries logged</div>
+      </div>
+      <div class="kpi-card" id="kpiHydrationCard">
+        <div class="kpi-label">Hydration Today</div>
+        <div class="kpi-value" id="kpiHydrationToday">0 / 64 oz</div>
+        <div class="kpi-sub" id="kpiHydrationPct">0% of goal</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">💧 Today's Hydration Goal</div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="hydrationGoalInput">Goal for today (oz):</label>
+          <input type="number" id="hydrationGoalInput" min="1" step="1" placeholder="e.g. 64">
+        </div>
+        <div class="form-group" style="display: flex; align-items: flex-end;">
+          <button class="btn btn-primary" onclick="saveHydrationGoal()">Save Goal</button>
+        </div>
+      </div>
+      <div style="background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 6px; height: 10px; overflow: hidden; margin-top: 8px;">
+        <div id="hydrationProgressBar" style="height: 100%; width: 0%; background: var(--accent-blue); transition: width 0.3s;"></div>
+      </div>
+    </div>
+
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <!-- Log protein -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🍗 Log Protein</div>
+        </div>
+        <form onsubmit="submitProteinLog(event)">
+          <div class="form-group">
+            <label for="proteinTimestamp">When:</label>
+            <input type="datetime-local" id="proteinTimestamp" required>
+          </div>
+          <div class="form-group">
+            <label for="proteinGrams">Protein (grams):</label>
+            <input type="number" id="proteinGrams" min="0" step="0.1" required>
+          </div>
+          <div class="form-group">
+            <label for="proteinNotes">Notes (optional):</label>
+            <input type="text" id="proteinNotes" placeholder="e.g. chicken breast, protein shake">
+          </div>
+          <button type="submit" class="btn btn-primary">Log Protein</button>
+        </form>
+      </div>
+
+      <!-- Log hydration -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">💧 Log Water</div>
+        </div>
+        <form onsubmit="submitHydrationLog(event)">
+          <div class="form-group">
+            <label for="hydrationTimestamp">When:</label>
+            <input type="datetime-local" id="hydrationTimestamp" required>
+          </div>
+          <div class="form-group">
+            <label for="hydrationOunces">Water (oz):</label>
+            <input type="number" id="hydrationOunces" min="0" step="0.5" required>
+          </div>
+          <div class="form-group">
+            <label for="hydrationNotes">Notes (optional):</label>
+            <input type="text" id="hydrationNotes" placeholder="optional">
+          </div>
+          <button type="submit" class="btn btn-primary">Log Water</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Trend charts -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📈 Trends</div>
+        <div class="toolbar-group">
+          <label class="toolbar-label" for="trendWindowSelect">Window:</label>
+          <select id="trendWindowSelect" onchange="loadSummaryAndRender()">
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+      </div>
+      <div style="height: 280px; margin-bottom: 24px;">
+        <canvas id="proteinChart"></canvas>
+      </div>
+      <div style="height: 280px;">
+        <canvas id="hydrationChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent entries -->
+    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Recent Protein Entries</div></div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>When</th><th>Grams</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="proteinLogTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Recent Hydration Entries</div></div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>When</th><th>Oz</th><th>Notes</th><th></th></tr></thead>
+            <tbody id="hydrationLogTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: Login (duplicated from index.html — see nutrition.js header comment) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-box" style="max-width: 380px;">
+      <h3 style="margin-bottom: 12px;">Authentication Required</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+        Enter application password configured in your .env file:
+      </p>
+      <form onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label for="authPasswordInput">Password:</label>
+          <input type="password" id="authPasswordInput" style="width: 100%; padding: 8px;" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn" onclick="toggleAuthModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Authenticate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/js/nutrition.js"></script>
+</body>
+</html>

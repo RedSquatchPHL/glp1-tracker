@@ -1588,7 +1588,10 @@ async function checkAuthStatus() {
 }
 
 function updateTabLockBadges() {
-  document.querySelectorAll('.tab-btn').forEach(btn => {
+  // target="_blank" tab-btns (e.g. Nutrition) navigate away from this SPA
+  // entirely and gate their own writes independently — not part of this
+  // tab-lock system, so skip them rather than show a misleading lock icon.
+  document.querySelectorAll('.tab-btn:not([target="_blank"])').forEach(btn => {
     const tabId = btn.dataset.tab;
     let badgeSpan = btn.querySelector('.lock-badge');
     if (tabId !== 'tab-dashboard' && !state.isAuthenticated) {

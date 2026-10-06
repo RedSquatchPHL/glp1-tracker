@@ -203,6 +203,42 @@ def init_db():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_lab_results_timestamp ON lab_results(timestamp);")
 
+        # 13. Protein Intake Log (itemized — each food/meal logged is its own row,
+        # same pattern as injections/side_effects; daily totals are summed at query time)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS protein_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            protein_grams REAL NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_protein_logs_timestamp ON protein_logs(timestamp);")
+
+        # 14. Hydration Log (itemized, same reasoning as protein_logs)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS hydration_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            ounces REAL NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_hydration_logs_timestamp ON hydration_logs(timestamp);")
+
+        # 15. Daily Hydration Goal — one row per calendar day (not a single global
+        # setting) so the goal itself has history and can change over time.
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_hydration_goals (
+            date TEXT PRIMARY KEY,
+            goal_oz REAL NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
         # Ensure photos directory exists
         from app.config import PHOTOS_DIR
         PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
