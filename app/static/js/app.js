@@ -384,9 +384,9 @@ async function loadMeasurementsTable() {
         }
       }
 
-      const w = l.data.weight_kg !== undefined ? l.data.weight_kg + ' kg' : '--';
+      const w = l.data.weight_kg !== undefined ? l.data.weight_kg + ' lbs' : '--';
       const fat = l.data.body_fat_pct !== undefined ? l.data.body_fat_pct + ' %' : '--';
-      const muscle = l.data.muscle_mass_kg !== undefined ? l.data.muscle_mass_kg + ' kg' : '--';
+      const muscle = l.data.muscle_mass_kg !== undefined ? l.data.muscle_mass_kg + ' lbs' : '--';
       const bmi = l.data.bmi !== undefined ? l.data.bmi : '--';
 
       tbody.innerHTML += `
@@ -506,9 +506,9 @@ async function loadDashboardData() {
     const dash = await res.json();
 
     // Render KPI values
-    document.getElementById('kpiCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} kg` : '-- kg';
+    document.getElementById('kpiCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} lbs` : '-- lbs';
     
-    const totalLostStr = dash.total_lost_kg !== undefined ? (dash.total_lost_kg <= 0 ? `${dash.total_lost_kg} kg` : `+${dash.total_lost_kg} kg`) : '-- kg';
+    const totalLostStr = dash.total_lost_kg !== undefined ? (dash.total_lost_kg <= 0 ? `${dash.total_lost_kg} lbs` : `+${dash.total_lost_kg} lbs`) : '-- lbs';
     document.getElementById('kpiTotalLost').innerText = `Total Lost: ${totalLostStr}`;
     
     // Pharmacokinetics Active Drug Level KPI
@@ -561,12 +561,12 @@ async function loadDashboardData() {
     }
 
     // Target Weight & Remaining to Goal
-    document.getElementById('kpiTargetWeight').innerText = `${dash.target_weight_kg} kg`;
+    document.getElementById('kpiTargetWeight').innerText = `${dash.target_weight_kg} lbs`;
     if (document.getElementById('userNameInput')) document.getElementById('userNameInput').value = dash.user_name || '';
     if (document.getElementById('userDobInput')) document.getElementById('userDobInput').value = dash.user_dob || '';
     if (document.getElementById('userPhysicianInput')) document.getElementById('userPhysicianInput').value = dash.physician_name || '';
     if (document.getElementById('userConditionsInput')) document.getElementById('userConditionsInput').value = dash.medical_conditions || '';
-    if (document.getElementById('targetWeightInput')) document.getElementById('targetWeightInput').value = dash.target_weight_kg || 75.0;
+    if (document.getElementById('targetWeightInput')) document.getElementById('targetWeightInput').value = dash.target_weight_kg || 165.0;
     if (document.getElementById('userHeightInput')) document.getElementById('userHeightInput').value = dash.user_height_cm || 175.0;
     if (document.getElementById('userGenderSelect')) document.getElementById('userGenderSelect').value = dash.user_gender || 'unspecified';
 
@@ -575,17 +575,17 @@ async function loadDashboardData() {
       if (dash.current_weight_kg !== null && dash.current_weight_kg !== undefined) {
         const rem = dash.weight_to_goal_kg;
         if (rem > 0) {
-          weightToGoalElem.innerText = `Remaining: ${rem.toFixed(1)} kg`;
+          weightToGoalElem.innerText = `Remaining: ${rem.toFixed(1)} lbs`;
         } else {
           weightToGoalElem.innerText = `Goal Reached! 🎉`;
         }
       } else {
-        weightToGoalElem.innerText = `Remaining: -- kg`;
+        weightToGoalElem.innerText = `Remaining: -- lbs`;
       }
     }
 
     const proj = dash.projections || {};
-    document.getElementById('kpiRate7d').innerText = proj.rate_kg_per_week ? `${proj.rate_kg_per_week} kg/wk` : '--';
+    document.getElementById('kpiRate7d').innerText = proj.rate_kg_per_week ? `${proj.rate_kg_per_week} lbs/wk` : '--';
     document.getElementById('kpiProjectedGoalDate').innerText = proj.projected_goal_date || 'N/A';
     document.getElementById('kpiDaysToGoal').innerText = proj.days_to_goal !== null ? `${proj.days_to_goal} days remaining` : '--';
 
@@ -596,15 +596,15 @@ async function loadDashboardData() {
     const elem30d = document.getElementById('prog30d');
     const elem90d = document.getElementById('prog90d');
 
-    if (elem7d) elem7d.innerText = (prog.in_7d_kg !== null && prog.in_7d_kg !== undefined) ? `${prog.in_7d_kg} kg` : '-- kg';
-    if (elem14d) elem14d.innerText = (prog.in_14d_kg !== null && prog.in_14d_kg !== undefined) ? `${prog.in_14d_kg} kg` : '-- kg';
-    if (elem30d) elem30d.innerText = (prog.in_30d_kg !== null && prog.in_30d_kg !== undefined) ? `${prog.in_30d_kg} kg` : '-- kg';
-    if (elem90d) elem90d.innerText = (prog.in_90d_kg !== null && prog.in_90d_kg !== undefined) ? `${prog.in_90d_kg} kg` : '-- kg';
+    if (elem7d) elem7d.innerText = (prog.in_7d_kg !== null && prog.in_7d_kg !== undefined) ? `${prog.in_7d_kg} lbs` : '-- lbs';
+    if (elem14d) elem14d.innerText = (prog.in_14d_kg !== null && prog.in_14d_kg !== undefined) ? `${prog.in_14d_kg} lbs` : '-- lbs';
+    if (elem30d) elem30d.innerText = (prog.in_30d_kg !== null && prog.in_30d_kg !== undefined) ? `${prog.in_30d_kg} lbs` : '-- lbs';
+    if (elem90d) elem90d.innerText = (prog.in_90d_kg !== null && prog.in_90d_kg !== undefined) ? `${prog.in_90d_kg} lbs` : '-- lbs';
 
     // Summary Box
-    document.getElementById('projCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} kg` : '--';
-    document.getElementById('projTargetWeight').innerText = `${dash.target_weight_kg} kg`;
-    document.getElementById('projRate').innerText = proj.rate_kg_per_week ? `${proj.rate_kg_per_week} kg/week` : '0 kg/wk';
+    document.getElementById('projCurrentWeight').innerText = dash.current_weight_kg ? `${dash.current_weight_kg} lbs` : '--';
+    document.getElementById('projTargetWeight').innerText = `${dash.target_weight_kg} lbs`;
+    document.getElementById('projRate').innerText = proj.rate_kg_per_week ? `${proj.rate_kg_per_week} lbs/week` : '0 lbs/wk';
     document.getElementById('projDate').innerText = proj.projected_goal_date || 'N/A';
     document.getElementById('projMuscleRatio').innerText = proj.muscle_loss_ratio_pct ? `${proj.muscle_loss_ratio_pct}%` : '0%';
 
@@ -659,7 +659,7 @@ function renderWeightChart(weightSeries, pkSeries) {
 
   const datasets = [
     {
-      label: 'Raw Weight (kg)',
+      label: 'Raw Weight (lbs)',
       data: rawVals,
       borderColor: '#475569',
       backgroundColor: 'rgba(71, 85, 105, 0.1)',
@@ -763,7 +763,7 @@ function renderBodyCompChart(fatSeries, muscleSeries) {
           yAxisID: 'yFat'
         },
         {
-          label: 'Muscle Mass (kg)',
+          label: 'Muscle Mass (lbs)',
           data: muscleVals,
           borderColor: '#10b981',
           borderWidth: 2,
@@ -1965,10 +1965,10 @@ function renderPhotoGallery() {
       const diff = p.weight_kg - baselineWeight;
       const sign = diff > 0 ? '+' : '';
       const color = diff <= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)';
-      weightDiffHtml = `<span style="font-size: 11px; color: ${color}; font-weight: 600; font-family: var(--font-mono);">${sign}${diff.toFixed(1)} kg vs start</span>`;
+      weightDiffHtml = `<span style="font-size: 11px; color: ${color}; font-weight: 600; font-family: var(--font-mono);">${sign}${diff.toFixed(1)} lbs vs start</span>`;
     }
 
-    const weightDisplay = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg} kg` : 'No weight tag';
+    const weightDisplay = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg} lbs` : 'No weight tag';
 
     return `
       <div class="photo-card">
@@ -2024,7 +2024,7 @@ function populateCompareDropdowns() {
   }
 
   const optionsHtml = sortedAsc.map(p => {
-    const wt = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg}kg` : 'No weight';
+    const wt = (p.weight_kg !== null && p.weight_kg !== undefined) ? `${p.weight_kg}lbs` : 'No weight';
     return `<option value="${p.id}">${p.timestamp} — ${p.angle} (${wt})</option>`;
   }).join('');
 
@@ -2068,12 +2068,12 @@ function updateBeforeAfterComparison() {
   if (wtA !== null && wtB !== null && wtA !== undefined && wtB !== undefined) {
     const diffWt = wtB - wtA;
     const sign = diffWt > 0 ? '+' : '';
-    weightDiffText = `${sign}${diffWt.toFixed(1)} kg`;
-    weightRangeText = `${wtA} kg ➔ ${wtB} kg`;
+    weightDiffText = `${sign}${diffWt.toFixed(1)} lbs`;
+    weightRangeText = `${wtA} lbs ➔ ${wtB} lbs`;
 
     if (diffDays > 0) {
       const weeklyRate = (diffWt / (diffDays / 7)).toFixed(2);
-      lossRateText = `${weeklyRate} kg/wk`;
+      lossRateText = `${weeklyRate} lbs/wk`;
     }
   }
 
@@ -2115,11 +2115,11 @@ function updateBeforeAfterComparison() {
 
   if (sideBeforeHeader) sideBeforeHeader.innerText = `BEFORE: ${photoA.timestamp} (${photoA.angle})`;
   if (sideBeforeImg) sideBeforeImg.src = photoA.image_path;
-  if (sideBeforeSub) sideBeforeSub.innerText = `Weight: ${photoA.weight_kg !== null ? photoA.weight_kg + ' kg' : 'N/A'} ${photoA.notes ? '| ' + photoA.notes : ''}`;
+  if (sideBeforeSub) sideBeforeSub.innerText = `Weight: ${photoA.weight_kg !== null ? photoA.weight_kg + ' lbs' : 'N/A'} ${photoA.notes ? '| ' + photoA.notes : ''}`;
 
   if (sideAfterHeader) sideAfterHeader.innerText = `AFTER: ${photoB.timestamp} (${photoB.angle})`;
   if (sideAfterImg) sideAfterImg.src = photoB.image_path;
-  if (sideAfterSub) sideAfterSub.innerText = `Weight: ${photoB.weight_kg !== null ? photoB.weight_kg + ' kg' : 'N/A'} ${photoB.notes ? '| ' + photoB.notes : ''}`;
+  if (sideAfterSub) sideAfterSub.innerText = `Weight: ${photoB.weight_kg !== null ? photoB.weight_kg + ' lbs' : 'N/A'} ${photoB.notes ? '| ' + photoB.notes : ''}`;
 }
 
 function swapBeforeAfterPhotos() {
@@ -2282,7 +2282,7 @@ async function autoFetchWeightForDate(dateStr) {
       if (latest.data && latest.data.weight_kg !== undefined) {
         document.getElementById('photoWeight').value = latest.data.weight_kg;
         const hint = document.getElementById('photoWeightHint');
-        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} kg from ${latest.scale_name || 'logged scale'}`;
+        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} lbs from ${latest.scale_name || 'logged scale'}`;
       }
     } else {
       const hint = document.getElementById('photoWeightHint');
@@ -2350,7 +2350,7 @@ async function fetchWeightForEditDate() {
       const latest = items[0];
       if (latest.data && latest.data.weight_kg !== undefined) {
         document.getElementById('editPhotoWeight').value = latest.data.weight_kg;
-        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} kg from ${latest.scale_name || 'logged scale'}`;
+        if (hint) hint.innerText = `✓ Auto-filled ${latest.data.weight_kg} lbs from ${latest.scale_name || 'logged scale'}`;
       }
     } else {
       if (hint) hint.innerText = `No scale measurement recorded on ${dateVal}`;

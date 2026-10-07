@@ -209,22 +209,22 @@
     <div class="grid-4">
       <div class="card">
         <div class="card-label">Start Weight</div>
-        <div class="card-value">{{ start_weight_kg or '--' }} kg</div>
+        <div class="card-value">{{ start_weight_kg or '--' }} lbs</div>
         <div class="card-sub">Baseline Entry</div>
       </div>
       <div class="card">
         <div class="card-label">Current Weight</div>
-        <div class="card-value">{{ current_weight_kg or '--' }} kg</div>
-        <div class="card-sub">Total Lost: {{ total_lost_kg }} kg</div>
+        <div class="card-value">{{ current_weight_kg or '--' }} lbs</div>
+        <div class="card-sub">Total Lost: {{ total_lost_kg }} lbs</div>
       </div>
       <div class="card">
         <div class="card-label">Target Goal Weight</div>
-        <div class="card-value">{{ target_weight_kg }} kg</div>
-        <div class="card-sub">Remaining: {{ weight_to_goal_kg }} kg</div>
+        <div class="card-value">{{ target_weight_kg }} lbs</div>
+        <div class="card-sub">Remaining: {{ weight_to_goal_kg }} lbs</div>
       </div>
       <div class="card">
         <div class="card-label">Weekly Loss Rate</div>
-        <div class="card-value">{{ projections.rate_kg_per_week or 0.0 }} kg/wk</div>
+        <div class="card-value">{{ projections.rate_kg_per_week or 0.0 }} lbs/wk</div>
         <div class="card-sub">OLS Trend Slope</div>
       </div>
     </div>
@@ -335,7 +335,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
         <strong style="font-size: 13px; color: #0f172a;">Diagnostic Classification: {{ plateau.diagnostic_type }}</strong>
         {% if plateau.is_plateau %}
-          <span class="badge badge-warning">Active Plateau (±0.5 kg window)</span>
+          <span class="badge badge-warning">Active Plateau (±1 lb window)</span>
         {% else %}
           <span class="badge badge-success">Weight Loss Active</span>
         {% endif %}
