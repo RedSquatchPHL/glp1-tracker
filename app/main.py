@@ -17,7 +17,8 @@ from app.routers import (
     api_side_effects,
     api_analytics,
     api_export,
-    api_photos
+    api_photos,
+    api_nutrition
 )
 
 # Initialize database tables & seed data on startup
@@ -47,6 +48,7 @@ app.include_router(api_side_effects.router)
 app.include_router(api_analytics.router)
 app.include_router(api_export.router)
 app.include_router(api_photos.router)
+app.include_router(api_nutrition.router)
 
 class LoginRequest(BaseModel):
     password: str
@@ -114,6 +116,10 @@ def auth_status(request: Request):
 @app.get("/", response_class=HTMLResponse)
 def index_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "port": PORT})
+
+@app.get("/nutrition", response_class=HTMLResponse)
+def nutrition_page(request: Request):
+    return templates.TemplateResponse("nutrition.html", {"request": request, "port": PORT})
 
 @app.get("/clinical-summary", response_class=HTMLResponse)
 def clinical_summary_page(request: Request):
