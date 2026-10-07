@@ -90,7 +90,7 @@
         <svg width="20" height="20" fill="none" stroke="var(--accent-amber)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
           <strong style="color: var(--accent-amber);" id="plateauTypeTitle">AUTOMATED PLATEAU DETECTED:</strong>
-          <span id="plateauInsightText">Weight fluctuating within ±0.5 kg over 14+ days.</span>
+          <span id="plateauInsightText">Weight fluctuating within ±1 lb over 14+ days.</span>
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;" id="plateauRecommendationText"></div>
         </div>
       </div>
@@ -108,8 +108,8 @@
       <div class="kpi-grid">
         <div class="kpi-card highlight">
           <div class="kpi-label">Current Weight</div>
-          <div class="kpi-value" id="kpiCurrentWeight">-- kg</div>
-          <div class="kpi-sub" id="kpiTotalLost">Total Lost: -- kg</div>
+          <div class="kpi-value" id="kpiCurrentWeight">-- lbs</div>
+          <div class="kpi-sub" id="kpiTotalLost">Total Lost: -- lbs</div>
           <div class="kpi-sub" id="kpiLastWeightDate" style="color: var(--accent-blue); margin-top: 2px;">Last entry: --</div>
         </div>
         <div class="kpi-card">
@@ -124,12 +124,12 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Target Weight Goal</div>
-          <div class="kpi-value" id="kpiTargetWeight">75.0 kg</div>
-          <div class="kpi-sub" id="kpiWeightToGoal">Remaining: -- kg</div>
+          <div class="kpi-value" id="kpiTargetWeight">165.0 lbs</div>
+          <div class="kpi-sub" id="kpiWeightToGoal">Remaining: -- lbs</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">7-Day Moving Avg Rate</div>
-          <div class="kpi-value" id="kpiRate7d">-- kg/wk</div>
+          <div class="kpi-value" id="kpiRate7d">-- lbs/wk</div>
           <div class="kpi-sub" id="kpiProjectionWindowLabel">Based on selected window</div>
         </div>
         <div class="kpi-card">
@@ -150,13 +150,13 @@
           <svg width="14" height="14" fill="none" stroke="var(--accent-blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
           Weight Prognosis (Forecast):
         </span>
-        <span style="font-size: 12px;">7 Days: <strong id="prog7d" style="color: var(--accent-cyan);" class="num">-- kg</strong></span>
+        <span style="font-size: 12px;">7 Days: <strong id="prog7d" style="color: var(--accent-cyan);" class="num">-- lbs</strong></span>
         <span style="color: var(--border-color);">•</span>
-        <span style="font-size: 12px;">14 Days: <strong id="prog14d" style="color: var(--accent-blue);" class="num">-- kg</strong></span>
+        <span style="font-size: 12px;">14 Days: <strong id="prog14d" style="color: var(--accent-blue);" class="num">-- lbs</strong></span>
         <span style="color: var(--border-color);">•</span>
-        <span style="font-size: 12px;">30 Days: <strong id="prog30d" style="color: var(--accent-purple);" class="num">-- kg</strong></span>
+        <span style="font-size: 12px;">30 Days: <strong id="prog30d" style="color: var(--accent-purple);" class="num">-- lbs</strong></span>
         <span style="color: var(--border-color);">•</span>
-        <span style="font-size: 12px;">90 Days: <strong id="prog90d" style="color: var(--accent-emerald);" class="num">-- kg</strong></span>
+        <span style="font-size: 12px;">90 Days: <strong id="prog90d" style="color: var(--accent-emerald);" class="num">-- lbs</strong></span>
       </div>
 
       <!-- Data Source & Projection Control Toolbar -->
@@ -206,7 +206,7 @@
           <div class="panel-header">
             <div class="panel-title">
               <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-              Body Fat (%) vs Muscle Mass (kg)
+              Body Fat (%) vs Muscle Mass (lbs)
             </div>
           </div>
           <div style="position: relative; height: 260px; width: 100%;">
@@ -224,15 +224,15 @@
           <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
               <span style="color: var(--text-muted);">Current Weight:</span>
-              <strong id="projCurrentWeight" class="num">-- kg</strong>
+              <strong id="projCurrentWeight" class="num">-- lbs</strong>
             </div>
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
               <span style="color: var(--text-muted);">Target Weight:</span>
-              <strong id="projTargetWeight" class="num">-- kg</strong>
+              <strong id="projTargetWeight" class="num">-- lbs</strong>
             </div>
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
               <span style="color: var(--text-muted);">Weight Loss Rate (Slope):</span>
-              <strong id="projRate" class="num" style="color: var(--accent-emerald);">-- kg/week</strong>
+              <strong id="projRate" class="num" style="color: var(--accent-emerald);">-- lbs/week</strong>
             </div>
             <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
               <span style="color: var(--text-muted);">Estimated Completion Date:</span>
@@ -314,9 +314,9 @@
               <tr>
                 <th>Date & Time</th>
                 <th>Scale Device</th>
-                <th>Weight (kg)</th>
+                <th>Weight (lbs)</th>
                 <th>Body Fat (%)</th>
-                <th>Muscle (kg)</th>
+                <th>Muscle (lbs)</th>
                 <th>BMI</th>
                 <th>Notes</th>
                 <th>Actions</th>
@@ -780,8 +780,8 @@
                 <input type="text" id="userConditionsInput" placeholder="e.g. Obesity (BMI 34), Type 2 Diabetes, Insulin Resistance">
               </div>
               <div class="form-group">
-                <label for="targetWeightInput">Target Goal Weight (kg):</label>
-                <input type="number" step="0.1" id="targetWeightInput" value="75.0" required>
+                <label for="targetWeightInput">Target Goal Weight (lbs):</label>
+                <input type="number" step="0.1" id="targetWeightInput" value="165.0" required>
               </div>
               <div class="form-group">
                 <label for="userHeightInput">Height (cm) — Used for BMI & WHtR:</label>
@@ -1089,7 +1089,7 @@
         <div id="compareSummaryBanner" class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px;">
           <div class="kpi-card highlight">
             <div class="kpi-label">Weight Change</div>
-            <div class="kpi-value" id="cmpKpiWeightDiff">-- kg</div>
+            <div class="kpi-value" id="cmpKpiWeightDiff">-- lbs</div>
             <div class="kpi-sub" id="cmpKpiWeightRange">-- ➔ --</div>
           </div>
           <div class="kpi-card">
@@ -1099,7 +1099,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-label">Loss Rate</div>
-            <div class="kpi-value" id="cmpKpiRate">-- kg/wk</div>
+            <div class="kpi-value" id="cmpKpiRate">-- lbs/wk</div>
             <div class="kpi-sub">Average weekly change</div>
           </div>
           <div class="kpi-card">
@@ -1234,7 +1234,7 @@
           <input type="text" id="modalMetricLabel" placeholder="e.g. Systolic Blood Pressure" required>
         </div>
         <div class="form-group">
-          <label for="modalMetricUnit">Unit (e.g. mmHg, kg, %, bpm, mg/dL):</label>
+          <label for="modalMetricUnit">Unit (e.g. mmHg, lbs, %, bpm, mg/dL):</label>
           <input type="text" id="modalMetricUnit" placeholder="e.g. mmHg" required>
         </div>
         <div class="form-group">
@@ -1399,7 +1399,7 @@
           <input type="date" id="photoDate" required onchange="autoFetchWeightForDate(this.value)">
         </div>
         <div class="form-group">
-          <label for="photoWeight">Weight Tagged (kg):</label>
+          <label for="photoWeight">Weight Tagged (lbs):</label>
           <div style="display: flex; gap: 8px;">
             <input type="number" step="0.1" id="photoWeight" placeholder="e.g. 84.5" style="flex: 1;">
             <button type="button" class="btn btn-sm" onclick="fetchWeightForSelectedDate()" title="Prefill recorded scale weight on this date">
@@ -1449,7 +1449,7 @@
           <input type="date" id="editPhotoDate" required>
         </div>
         <div class="form-group">
-          <label for="editPhotoWeight">Weight Tagged (kg):</label>
+          <label for="editPhotoWeight">Weight Tagged (lbs):</label>
           <div style="display: flex; gap: 8px;">
             <input type="number" step="0.1" id="editPhotoWeight" placeholder="e.g. 84.5" style="flex: 1;">
             <button type="button" class="btn btn-sm" onclick="fetchWeightForEditDate()" title="Prefill recorded scale weight on this date">

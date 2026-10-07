@@ -167,7 +167,7 @@ def clinical_summary_page(request: Request):
         "start_weight_kg": dash.get("start_weight_kg"),
         "current_weight_kg": dash.get("current_weight_kg"),
         "total_lost_kg": dash.get("total_lost_kg", 0.0),
-        "target_weight_kg": dash.get("target_weight_kg", 75.0),
+        "target_weight_kg": dash.get("target_weight_kg", 165.0),
         "weight_to_goal_kg": dash.get("weight_to_goal_kg", 0.0),
         "projections": dash.get("projections", {}),
         "pk": dash.get("pharmacokinetics", {}),

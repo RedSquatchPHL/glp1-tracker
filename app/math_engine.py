@@ -64,7 +64,7 @@ def calculate_moving_averages(data_points: List[Dict[str, Any]], key: str = "wei
 
 def calculate_linear_projections(
     measurements: List[Dict[str, Any]], 
-    target_weight_kg: float = 75.0, 
+    target_weight_kg: float = 165.0, 
     window_days: int = 30
 ) -> Dict[str, Any]:
     """
@@ -196,7 +196,7 @@ def calculate_linear_projections(
         total_muscle_change = round(last_muscle - first_muscle, 2)
         
         # If user is losing weight overall (weight change < 0) and losing muscle (muscle change < 0)
-        if total_weight_change < -0.5 and total_muscle_change < 0:
+        if total_weight_change < -1.0 and total_muscle_change < 0:
             muscle_loss_kg = abs(total_muscle_change)
             weight_loss_kg = abs(total_weight_change)
             muscle_loss_ratio = muscle_loss_kg / weight_loss_kg
@@ -206,7 +206,7 @@ def calculate_linear_projections(
                 lean_mass_warning = True
                 warning_message = (
                     f"Warning: {muscle_loss_ratio_pct}% of your weight loss over the past {window_days or 'all'} "
-                    f"days was muscle mass ({abs(total_muscle_change)} kg lost). "
+                    f"days was muscle mass ({abs(total_muscle_change)} lbs lost). "
                     f"Consider increasing protein intake and incorporating resistance training."
                 )
 
@@ -438,11 +438,11 @@ def calculate_body_ratios(
 def detect_weight_plateau(
     measurements: List[Dict[str, Any]], 
     threshold_days: int = 14, 
-    window_kg: float = 0.5
+    window_kg: float = 1.0
 ) -> Dict[str, Any]:
     """
     Automated Plateau Detection & Breakdown Engine:
-    Identifies weight plateaus (weight fluctuating within +/-0.5 kg window over a 14-21 day threshold).
+    Identifies weight plateaus (weight fluctuating within +/-1 lb window over a 14-21 day threshold).
     Displays diagnostic insights distinguishing fat loss vs. muscle gain or fluid retention (ICW/ECW shifts).
     """
     if not measurements:
@@ -507,7 +507,7 @@ def detect_weight_plateau(
     last_pt = recent_points[-1]
     span_days = int((last_pt["dt"] - first_pt["dt"]).total_seconds() / 86400.0)
 
-    # Check if weight fluctuates within +/- 0.5 kg window (total spread <= 1.0 kg) over >= 14 days
+    # Check if weight fluctuates within +/- 1 lb window (total spread <= 2.0 lbs) over >= 14 days
     is_plateau = (weight_range <= (window_kg * 2.0)) and (span_days >= threshold_days)
 
     if not is_plateau:
@@ -516,7 +516,7 @@ def detect_weight_plateau(
             "duration_days": span_days,
             "weight_range_kg": weight_range,
             "diagnostic_type": "Weight Loss Active",
-            "diagnostic_insight": f"Weight loss trend active. Weight spread over the past {span_days} days is {weight_range} kg.",
+            "diagnostic_insight": f"Weight loss trend active. Weight spread over the past {span_days} days is {weight_range} lbs.",
             "recommendation": "Your weight is progressing outside a plateau window."
         }
 
@@ -527,15 +527,15 @@ def detect_weight_plateau(
 
     diagnostic_type = "Metabolic Plateau"
     insight = (
-        f"Weight has remained flat within a ±{round(weight_range/2, 2)} kg window for {span_days} days. "
-        f"Scale weight is stabilized around {mean_w} kg."
+        f"Weight has remained flat within a ±{round(weight_range/2, 2)} lbs window for {span_days} days. "
+        f"Scale weight is stabilized around {mean_w} lbs."
     )
     recommendation = "Consider reviewing caloric intake, strength training stimulus, or discussing dose progression with your provider."
 
     if fat_diff is not None and fat_diff <= -0.3:
         diagnostic_type = "Body Recomposition (Fat Loss Active)"
         insight = (
-            f"Weight is flat ({weight_range} kg spread over {span_days} days), BUT body fat percentage dropped by "
+            f"Weight is flat ({weight_range} lbs spread over {span_days} days), BUT body fat percentage dropped by "
             f"{abs(round(fat_diff, 1))}%. Fat loss is actively continuing while muscle gain or glycogen/water shifts mask scale weight loss."
         )
         recommendation = "Recomposition detected! Pay attention to body measurements and waist metrics rather than scale weight."

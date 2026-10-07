@@ -246,12 +246,12 @@ def init_db():
 
         # --- SEED DEFAULT METRICS DEFINITIONS ---
         default_metrics = [
-            ("weight_kg", "Weight", "kg", "body_comp", 10),
+            ("weight_kg", "Weight", "lbs", "body_comp", 10),
             ("body_fat_pct", "Body Fat", "%", "body_comp", 20),
             ("bmi", "BMI", "kg/m²", "body_comp", 30),
             ("skeletal_muscle_pct", "Skeletal Muscle", "%", "body_comp", 40),
-            ("muscle_mass_kg", "Muscle Mass", "kg", "body_comp", 50),
-            ("fat_free_mass_kg", "Fat-Free Mass", "kg", "body_comp", 60),
+            ("muscle_mass_kg", "Muscle Mass", "lbs", "body_comp", 50),
+            ("fat_free_mass_kg", "Fat-Free Mass", "lbs", "body_comp", 60),
             ("protein_pct", "Protein", "%", "body_comp", 70),
             ("bmr_kcal", "BMR", "kcal", "body_comp", 80),
             ("subcutaneous_fat_pct", "Subcutaneous Fat", "%", "body_comp", 90),
@@ -273,17 +273,17 @@ def init_db():
             ("glucose_mgdl", "Blood Glucose", "mg/dL", "vital_signs", 180),
             
             # Segmental Metrics
-            ("arm_r_muscle_kg", "Right Arm Muscle", "kg", "segmental", 200),
-            ("arm_l_muscle_kg", "Left Arm Muscle", "kg", "segmental", 210),
-            ("torso_muscle_kg", "Torso Muscle", "kg", "segmental", 220),
-            ("leg_r_muscle_kg", "Right Leg Muscle", "kg", "segmental", 230),
-            ("leg_l_muscle_kg", "Left Leg Muscle", "kg", "segmental", 240),
+            ("arm_r_muscle_kg", "Right Arm Muscle", "lbs", "segmental", 200),
+            ("arm_l_muscle_kg", "Left Arm Muscle", "lbs", "segmental", 210),
+            ("torso_muscle_kg", "Torso Muscle", "lbs", "segmental", 220),
+            ("leg_r_muscle_kg", "Right Leg Muscle", "lbs", "segmental", 230),
+            ("leg_l_muscle_kg", "Left Leg Muscle", "lbs", "segmental", 240),
             
-            ("arm_r_fat_kg", "Right Arm Fat", "kg", "segmental", 250),
-            ("arm_l_fat_kg", "Left Arm Fat", "kg", "segmental", 260),
-            ("torso_fat_kg", "Torso Fat", "kg", "segmental", 270),
-            ("leg_r_fat_kg", "Right Leg Fat", "kg", "segmental", 280),
-            ("leg_l_fat_kg", "Left Leg Fat", "kg", "segmental", 290)
+            ("arm_r_fat_kg", "Right Arm Fat", "lbs", "segmental", 250),
+            ("arm_l_fat_kg", "Left Arm Fat", "lbs", "segmental", 260),
+            ("torso_fat_kg", "Torso Fat", "lbs", "segmental", 270),
+            ("leg_r_fat_kg", "Right Leg Fat", "lbs", "segmental", 280),
+            ("leg_l_fat_kg", "Left Leg Fat", "lbs", "segmental", 290)
         ]
 
         for key, label, unit, cat, sort_order in default_metrics:
@@ -341,9 +341,17 @@ def init_db():
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_dob', '');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('physician_name', '');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('medical_conditions', '');")
-        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('target_weight_kg', '75.0');")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('target_weight_kg', '165.0');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_height_cm', '175.0');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_gender', 'unspecified');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('app_password', 'admin');")
         cursor.execute("UPDATE user_settings SET value = '€' WHERE key = 'currency_symbol';")
+        # --- ONE-TIME MIGRATION: weights are stored/displayed in lbs ---
+        # Column/key names keep the legacy "_kg" suffix; values are now pounds.
+        cursor.execute("SELECT value FROM user_settings WHERE key = 'weight_unit';")
+        if cursor.fetchone() is None:
+            cursor.execute("UPDATE metrics_definitions SET unit = 'lbs' WHERE unit = 'kg';")
+            cursor.execute("UPDATE user_settings SET value = '165.0' WHERE key = 'target_weight_kg' AND value = '75.0';")
+            cursor.execute("INSERT INTO user_settings (key, value) VALUES ('weight_unit', 'lbs');")
+
 

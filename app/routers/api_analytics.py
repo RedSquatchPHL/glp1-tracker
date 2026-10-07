@@ -39,7 +39,7 @@ def get_dashboard_data(
     user_dob = settings_dict.get("user_dob", "")
     physician_name = settings_dict.get("physician_name", "")
     medical_conditions = settings_dict.get("medical_conditions", "")
-    target_weight_kg = float(settings_dict.get("target_weight_kg", "75.0"))
+    target_weight_kg = float(settings_dict.get("target_weight_kg", "165.0"))
     user_height_cm = float(settings_dict.get("user_height_cm", "175.0"))
     user_gender = settings_dict.get("user_gender", "unspecified")
 
@@ -70,7 +70,7 @@ def get_dashboard_data(
             item["data"] = {}
         measurements.append(item)
 
-    # 3. Calculate moving averages for primary metrics (Weight, Body Fat %, Muscle Mass kg)
+    # 3. Calculate moving averages for primary metrics (Weight, Body Fat %, Muscle Mass lbs)
     weight_ma = calculate_moving_averages(measurements, "weight_kg")
     fat_ma = calculate_moving_averages(measurements, "body_fat_pct")
     muscle_ma = calculate_moving_averages(measurements, "muscle_mass_kg")
@@ -95,7 +95,7 @@ def get_dashboard_data(
     pk_analysis = calculate_pharmacokinetics(injection_rows, days_ahead=14)
 
     # 7. Automated Plateau Detection & Breakdown Engine
-    plateau_analysis = detect_weight_plateau(measurements, threshold_days=14, window_kg=0.5)
+    plateau_analysis = detect_weight_plateau(measurements, threshold_days=14, window_kg=1.0)
 
     # 8. Waist-to-Height (WHtR) & Waist-to-Hip (WHR) Ratio Analysis
     latest_waist_cm = None

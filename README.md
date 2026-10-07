@@ -20,7 +20,7 @@ A minimalist, highly functional, clinical-grade web application designed for tra
 |                                                                                   |
 |  +-------------------+  +-------------------+  +-------------------------------+  |
 |  | Current Weight    |  | Active Drug Level |  | Cardiometabolic Risk (WHtR)   |  |
-|  | 84.5 kg           |  | 1.84 mg (7d hl)   |  | Healthy / Normal Risk (0.46)  |  |
+|  | 186.3 lbs          |  | 1.84 mg (7d hl)   |  | Healthy / Normal Risk (0.46)  |  |
 |  +-------------------+  +-------------------+  +-------------------------------+  |
 |                                                                                   |
 |  [🚨 SMART INJECTION REMINDER: Next dose due in 2 days (Sunday) — Site: Abdomen R]  |
@@ -49,7 +49,7 @@ A minimalist, highly functional, clinical-grade web application designed for tra
 - **Waist-to-Height Ratio (WHtR) & Waist-to-Hip Ratio (WHR)**:
   - Support logging waist and hip circumferences (cm/in) to compute cardiometabolic risk scores alongside smart scale readings.
 - **Automated Plateau Detection & Breakdown Engine**:
-  - Automatically identifies weight plateaus (weight fluctuating within a ±0.5 kg window over a 14–21 day threshold).
+  - Automatically identifies weight plateaus (weight fluctuating within a ±1 lb window over a 14–21 day threshold).
   - Displays diagnostic insights distinguishing fat loss vs. muscle gain (recomposition) or fluid retention (ICW/ECW shifts).
 - **Lean Mass Protection Warning**:
   - Automatically flags unhealthily high muscle-to-fat loss ratios (>25% muscle loss ratio) with actionable nutritional and training recommendations.
@@ -63,7 +63,7 @@ A minimalist, highly functional, clinical-grade web application designed for tra
 ### 4. Body Transformation & Progress Photos
 - **Multi-Angle Photo Logging**: Upload and tag progress photos with camera angles (Front, Side, Back, Three-Quarter, Flexed), date, weight, and notes.
 - **Interactive Before/After Comparison**:
-  - **Side-by-Side View**: Compare early vs recent photos with date delta, duration elapsed, and weight difference (kg).
+  - **Side-by-Side View**: Compare early vs recent photos with date delta, duration elapsed, and weight difference (lbs).
   - **Interactive Split-Slider**: Real-time curtain slider overlay for precision visual comparison of body composition changes.
 
 ### 5. Injections, Inventory & Side Effects Tracking
@@ -81,7 +81,7 @@ A minimalist, highly functional, clinical-grade web application designed for tra
 - **Sub-Tab Categorization**: Organized into 5 dedicated sections:
   - 📏 **Scales & Devices**: Manage scale profiles (Home Scale, Gym InBody Scale) and metric assignments.
   - 📐 **Custom Metric Fields**: Create, edit, or deactivate standard or custom body composition & vital sign input fields.
-  - 👤 **Profile & Goals**: Patient clinical demographics, height (cm), target weight (kg), concomitant medications, and lab blood work managers.
+  - 👤 **Profile & Goals**: Patient clinical demographics, height (cm), target weight (lbs), concomitant medications, and lab blood work managers.
   - 🔑 **Password & Security**: Change application password in-app and monitor active session status.
   - 💾 **Data Export & Backups**: JSON database backup/restore, CSV spreadsheet export/import, and 1-Click Doctor Summary PDF report generator.
   - ⚙️ **App Preferences**: Customize application currency symbol ($ / € / £ / ¥).
