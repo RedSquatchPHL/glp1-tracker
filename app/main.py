@@ -65,8 +65,6 @@ def health_check():
 def login(payload: LoginRequest, response: Response):
     eff_pw = get_effective_password().strip()
     entered_pw = (payload.password or "").strip()
-    print(f"[AUTH DEBUG] login attempt: entered_pw='{entered_pw}', eff_pw='{eff_pw}'", flush=True)
-    
     if entered_pw == eff_pw:
         token = create_session_token()
         response.set_cookie(

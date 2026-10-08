@@ -345,7 +345,7 @@ def init_db():
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_height_cm', '175.0');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('user_gender', 'unspecified');")
         cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('app_password', 'admin');")
-        cursor.execute("UPDATE user_settings SET value = '€' WHERE key = 'currency_symbol';")
+        cursor.execute("INSERT OR IGNORE INTO user_settings (key, value) VALUES ('currency_symbol', '$');")
         # --- ONE-TIME MIGRATION: weights are stored/displayed in lbs ---
         # Column/key names keep the legacy "_kg" suffix; values are now pounds.
         cursor.execute("SELECT value FROM user_settings WHERE key = 'weight_unit';")
